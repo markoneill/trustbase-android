@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:background="#FFFFFF"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="#4d4d4d"
+        android:textSize="8.5pt"
+        android:text="The Internet Research Lab at Brigham Young University is conducting a study on man-in-the-middle attacks. To do this we would like to collect some basic information when your phone makes a secure connection to a website. This includes the website&apos;s certificate (which is public information), what city you are in, and the IP address of your phone at the time of connection. We will use this to determine if you have been given a valid certificate. We will not release your IP address or any other personally identifiable information to any other party. If you consent to these practices, press OK, otherwise press Cancel. If you have any further questions about this project, please visit http://internet.byu.edu/research/android-certs. Thank you for your participation in helping us make the Internet a safer place!"
+        android:id="@+id/textView"
+        android:autoLink="web"
+        android:linksClickable="true"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="0dp"
+        android:layout_weight=".11"/>
+
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                  android:orientation="horizontal"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:paddingLeft="10dp"
+                  android:paddingRight="10dp"
+                  android:paddingTop="0dp"
+        android:layout_weight="1">
+        <Button
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ok"
+            android:id="@+id/button"
+            android:paddingRight="20dp"
+            android:paddingLeft="20dp"
+            android:layout_alignParentRight="true"/>
+        <Button
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:id="@+id/button2"
+            android:paddingRight="20dp"
+            android:paddingLeft="20dp"
+            android:layout_toLeftOf="@+id/button"/>
+        </RelativeLayout>
+</LinearLayout>
