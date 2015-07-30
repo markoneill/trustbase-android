@@ -4,6 +4,7 @@ import android.util.Log;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -30,70 +31,61 @@ public class TLSHandshake
     public final static byte HANDSHAKE_HEADER_SIZE = 4;
 
     /* Indexed from Handshake Content */
-    public static int getHandshakeMessageType(byte[] packet, int offset)
+    public static byte getHandshakeMessageType(ByteBuffer packet)
     {
-        return (int) packet[offset];
+        return packet.get();
     }
 
-    public static int getHandshakeDataLength(byte[] packet, int offset)
+    public static int getHandshakeDataLength(ByteBuffer packet)
     {
-        return (int) (((packet[offset + 1] & 0xFF) << 16) | ((packet[offset + 2] & 0xFF) << 8) | (packet[offset + 3] & 0xFF)) & 0xFFFFFF;
+        return (int) (((packet.get() & 0xFF) << 16) | ((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFFFF;
     }
 
-    public static int getClientHelloMajorVersion(byte[] packet, int offset)
+    public static byte getClientHelloMajorVersion(ByteBuffer packet)
     {
-        return packet[4 + offset];
+        return packet.get();
     }
 
-    public static int getClientHelloMinorVersion(byte[] packet, int offset)
+    public static byte getClientHelloMinorVersion(ByteBuffer packet)
     {
-        return packet[5 + offset];
+        return packet.get();
     }
 
-    public static byte[] getClientHelloRandom(byte[] packet, int offset)
+    public static byte[] getClientHelloRandom(ByteBuffer packet)
     {
-        return Arrays.copyOfRange(packet, 6 + offset, 37 + offset);
+        byte[] toReturn = new byte[32];
+        packet.get(toReturn);
+        return toReturn;
     }
 
-    public static short getClientHelloSessionIdLength(byte[] packet, int offset)
+    public static short getClientHelloSessionIdLength(ByteBuffer packet)
     {
-        return (short) (packet[38 + offset] & 0xFF);
+        return (short) (packet.get() & 0xFF);
     }
 
-    public static byte[] getClientHelloSessionID(byte[] packet, int offset)
+    public static byte[] getClientHelloSessionID(ByteBuffer packet, short idLength)
     {
-        return Arrays.copyOfRange(packet, 39 + offset, getClientHelloSessionIdLength(packet, offset) + offset);
+        byte[] toReturn = new byte[idLength];
+        packet.get(toReturn);
+        return toReturn;
     }
 
-    public static int getCipherSuiteLength(byte[] packet, int offset)
+    public static int getCipherSuiteLength(ByteBuffer packet)
     {
-        return (int) (((packet[39 + getClientHelloSessionIdLength(packet, offset) + offset] & 0xFF) << 8) |
-                        (packet[40 + getClientHelloSessionIdLength(packet, offset) + offset] & 0xFF)) & 0xFFFF;
+        return (int) (((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFF;
     }
 
-    public static short getClientHelloCompressionMethodsLength(byte[] packet, int offset)
+    public static short getClientHelloCompressionMethodsLength(ByteBuffer packet)
     {
-        return (short) (packet[41 + getClientHelloSessionIdLength(packet, offset) +
-                                    getCipherSuiteLength(packet, offset) +
-                                    offset] & 0xFF);
+        return (short) (packet.get() & 0xFF);
     }
 
-    public static int getClientHelloExtensionsLength(byte[] packet, int offset)
+    public static int getClientHelloExtensionsLength(ByteBuffer packet)
     {
-        return (int) (((packet[42 + getClientHelloSessionIdLength(packet, offset) +
-                                 getCipherSuiteLength(packet, offset) +
-                                 getClientHelloCompressionMethodsLength(packet, offset) +
-                                 offset]
-                             & 0xFF) << 8) |
-                           (packet[43 + getClientHelloSessionIdLength(packet, offset) +
-                                     getCipherSuiteLength(packet, offset) +
-                                     getClientHelloCompressionMethodsLength(packet, offset) +
-                                     offset]
-                                 & 0xFF))
-                       & 0xFFFF;
+        return (int) (((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFF;
     }
 
-    public static String getClientHelloServerName(byte[] packet, int offset)
+    public static String getClientHelloServerName(ByteBuffer packet)
     {
         int start = 44 +
                     getClientHelloSessionIdLength(packet, offset) +
@@ -121,7 +113,7 @@ public class TLSHandshake
         return hostname;
     }
 
-    public static ArrayList<X509Certificate> getCertificates(byte[] packet, int offset)
+    public static ArrayList<X509Certificate> getCertificates(ByteBuffer packet)
     {
         try
         {

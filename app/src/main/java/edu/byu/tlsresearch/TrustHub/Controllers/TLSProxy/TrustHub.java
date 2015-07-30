@@ -2,13 +2,17 @@ package edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy;
 
 import android.util.Log;
 
+import java.nio.channels.SelectionKey;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLContextSpi;
-import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 
+import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
+import edu.byu.tlsresearch.TrustHub.Controllers.Socket.IChannelListener;
+import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
 import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
@@ -16,55 +20,64 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
  */
 public class TrustHub
 {
-    /**
-     * ClientDecryptEngine (CDE)
-     * App --(ClientHello)--> CDE
-     * App <--(ServerHello)-- CDE
-     * ...
-     *
-     *
-     *
-     *     (mitm cert)     unwrap()         (plaintext)         wrap()         (domain Cert)
-     * APP -----------> ClientEngine --------------> ServerEngine ---------------> Internet
-     *
-     *     (mitm cert)     unwrap()         (plaintext)         wrap()         (domain Cert)
-     * APP -----------> ClientEngine --------------> ServerEngine ---------------> Internet
-     *
-     */
-    private static TLSState mStates = new TLSState();
-    private static List<SSLProxy> mProxies = new ArrayList<SSLProxy>();
-    public static byte[] proxyOut(byte[] toWrite, Connection connection)
+    private static Map<Connection, TLSState> mStates = new HashMap<Connection, TLSState>();
+    private static Map<Connection, SSLProxy> mProxies = new HashMap<Connection, SSLProxy>();
+
+    private static SSLProxy getProxy(Connection key)
     {
-        Log.d("TrustHub", "Out");
-        mStates.sending(toWrite, connection);
-        switch (mStates.getState(connection).MitM)
+        if(mProxies.containsKey(key))
         {
-            case PROXY:
-                break;
-            case NOPROXY:
-                break;
-            case CHECKCERT:
-                break;
-            case UNKNOWN:
-                break;
+            return mProxies.get(key);
         }
-        return toWrite;
+        else
+        {
+            try
+            {
+                SSLProxy toReturn = new SSLProxy();
+                mProxies.put(key, toReturn);
+                return toReturn;
+            }
+            catch (Exception e)
+            {
+                Log.e("Trusthub", "Unable to proxy connection: " + key.toString());
+                mProxies.put(key, null);
+                return null;
+            }
+        }
     }
 
-    public static byte[] proxyIn(byte[] toRead, Connection connection)
+    public static void proxyOut(byte[] toWrite, SelectionKey key)
     {
-        mStates.received(toRead, connection);
-        switch (mStates.getState(connection).MitM)
+        byte[] toReturn = toWrite;
+        if(key.attachment() instanceof TCPChannel)
         {
-            case PROXY:
-                break;
-            case NOPROXY:
-                break;
-            case CHECKCERT:
-                break;
-            case UNKNOWN:
-                break;
+            SSLProxy curProxy = getProxy(((TCPChannel) key.attachment()).getmContext());
+            if(curProxy != null)
+            {
+                try
+                {
+                    curProxy.send(toWrite);
+                }
+                catch(SSLException e)
+                {
+                    Log.e("TrustHub", "SSL Error on: " + ((TCPChannel) key.attachment()).getmContext().toString());
+                    //TODO reset the connection or something here
+                }
+            }
+            else
+            {
+                Log.d("TrustHub", "Proxy does not exists for: " + ((TCPChannel) key.attachment()).getmContext().toString());
+            }
         }
-        return toRead;
+        else
+        {
+            Log.d("TrustHub", "NOT TCPWrite");
+        }
+        SocketPoller.getInstance().noProxySend(key, toReturn);
+    }
+
+    public static void proxyIn(byte[] packet, SelectionKey key)
+    {
+        ((IChannelListener) key.attachment()).receive(packet);
     }
 }

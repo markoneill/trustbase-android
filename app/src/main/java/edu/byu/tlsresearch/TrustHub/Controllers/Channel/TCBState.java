@@ -130,7 +130,7 @@ public enum TCBState implements ITCBState
             // tcp will guarentee it's delivery
 
             context.receive(new byte[0], TCPHeader.ACK);
-            SocketPoller.getInstance().sendPayload(context.getmChannelKey(), payload);
+            SocketPoller.getInstance().proxySend(context.getmChannelKey(), payload);
         }
     }
 }

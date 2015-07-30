@@ -1,5 +1,7 @@
 package edu.byu.tlsresearch.TrustHub.Utils;
 
+import java.nio.ByteBuffer;
+
 /**
  * Created by sheidbri on 5/6/15.
  */
@@ -12,24 +14,24 @@ public class TLSRecord
 
     public final static byte RECORD_HEADER_SIZE = 5;
 
-    public static byte getContentType(byte[] packet, int offset)
+    public static byte getContentType(ByteBuffer packet)
     {
-        return packet[offset];
+        return packet.get();
     }
 
-    public static short getMajorVersion(byte[] packet, int offset)
+    public static short getMajorVersion(ByteBuffer packet)
     {
-        return packet[1 + offset];
+        return packet.get();
     }
 
-    public static short getMinorVersion(byte[] packet, int offset)
+    public static short getMinorVersion(ByteBuffer packet)
     {
-        return packet[2 + offset];
+        return packet.get();
     }
 
-    public static int getRecordLength(byte[] packet, int offset)
+    public static int getRecordLength(ByteBuffer packet)
     {
-        return (int) (((packet[3 + offset] & 0xFF) << 8) | (packet[4 + offset] & 0xFF)) & 0xFFFF;
+        return (int) (((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFF;
     }
 
 }

@@ -31,18 +31,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 public class SocketPoller implements Runnable
 {
-    private class proxyData
-    {
-        public proxyData(boolean p, Connection c)
-        {
-            proxy = p;
-            connection = c;
-        }
-        public boolean proxy;
-        public Connection connection;
-    }
     private Map<SelectionKey, List<byte[]>> mToWrite;
-    private Map<SelectionKey, proxyData> mToTustHub;
     private Selector mEpoll;
     public static String TAG = "SocketPoller";
 
@@ -67,22 +56,17 @@ public class SocketPoller implements Runnable
     {
         mEpoll = Selector.open();
         mToWrite = new ConcurrentHashMap<SelectionKey, List<byte[]>>();
-        mToTustHub = new ConcurrentHashMap<>();
     }
 
-    public void sendPayload(SelectionKey key, byte[] toWrite)
+    public void proxySend(SelectionKey key, byte[] toWrite)
     {
-        try
-        {
-            if(mToTustHub.get(key).proxy)
-            {
-                toWrite = TrustHub.proxyOut(toWrite, mToTustHub.get(key).connection);
-            }
-            mToWrite.get(key).add(toWrite); // TODO: syncronize reads and writes to this buffer
-        } catch (Exception e)
-        {
-            Log.d(TAG, "Send payload failed" + e);
-        }
+        TrustHub.proxyOut(toWrite, key);
+    }
+
+    public void noProxySend(SelectionKey key, byte[] toWrite)
+    {
+        // TODO: syncronize reads and writes to this buffer
+        mToWrite.get(key).add(toWrite);
     }
 
     public SelectionKey registerChannel(SelectableChannel toRegister, Connection con, IChannelListener writeBack)
@@ -97,14 +81,6 @@ public class SocketPoller implements Runnable
                 toAdd = toRegister.register(mEpoll, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
                 toAdd.attach(writeBack);
                 mToWrite.put(toAdd, new ArrayList<byte[]>());
-                if(toRegister instanceof SocketChannel)
-                {
-                    mToTustHub.put(toAdd, new proxyData(true, con));
-                }
-                else
-                {
-                    mToTustHub.put(toAdd, new proxyData(false, con));
-                }
             }
             return toAdd;
         } catch (Exception e)
@@ -176,7 +152,7 @@ public class SocketPoller implements Runnable
                                 if (length > 0)
                                 {
                                     packet.flip();
-                                    handleRead(key, packet, length);
+                                    proxyRead(key, packet, length);
                                 }
                                 if (length == -1)
                                 {
@@ -257,14 +233,18 @@ public class SocketPoller implements Runnable
         }
     }
 
-    private void handleRead(SelectionKey key, ByteBuffer packet, int length)
+    private void proxyRead(SelectionKey key, ByteBuffer packet, int length)
     {
         byte[] toRead = new byte[packet.remaining()];
         packet.get(toRead);
-        if(mToTustHub.get(key).proxy)
-        {
-            toRead = TrustHub.proxyIn(toRead, mToTustHub.get(key).connection);
-        }
+        TrustHub.proxyIn(toRead, key);
+        packet.clear();
+    }
+
+    private void noProxyRead(SelectionKey key, ByteBuffer packet, int length)
+    {
+        byte[] toRead = new byte[packet.remaining()];
+        packet.get(toRead);
         ((IChannelListener) key.attachment()).receive(toRead);
         packet.clear();
     }
