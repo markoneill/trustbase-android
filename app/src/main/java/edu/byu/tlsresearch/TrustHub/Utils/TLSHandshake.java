@@ -9,7 +9,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
  * Created by sheidbri on 5/14/15.
@@ -29,103 +28,122 @@ public class TLSHandshake
     public final static short EXTENSION_TYPE_SERVER_NAME = 0x0000;
 
     public final static byte HANDSHAKE_HEADER_SIZE = 4;
+    private static final int CERT_HEADER_LENGTH = 3;
 
     /* Indexed from Handshake Content */
-    public static byte getHandshakeMessageType(ByteBuffer packet)
+    public static byte getHandshakeMessageType(ByteBuffer buffer)
     {
-        return packet.get();
+        return buffer.get();
     }
 
-    public static int getHandshakeDataLength(ByteBuffer packet)
+    public static int getHandshakeDataLength(ByteBuffer buffer)
     {
-        return (int) (((packet.get() & 0xFF) << 16) | ((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFFFF;
+        return (int) (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
     }
 
-    public static byte getClientHelloMajorVersion(ByteBuffer packet)
+    public static byte getClientHelloMajorVersion(ByteBuffer buffer)
     {
-        return packet.get();
+        return buffer.get();
     }
 
-    public static byte getClientHelloMinorVersion(ByteBuffer packet)
+    public static byte getClientHelloMinorVersion(ByteBuffer buffer)
     {
-        return packet.get();
+        return buffer.get();
     }
 
-    public static byte[] getClientHelloRandom(ByteBuffer packet)
+    public static byte[] getClientHelloRandom(ByteBuffer buffer)
     {
         byte[] toReturn = new byte[32];
-        packet.get(toReturn);
+        buffer.get(toReturn);
         return toReturn;
     }
 
-    public static short getClientHelloSessionIdLength(ByteBuffer packet)
+    public static short getClientHelloSessionIdLength(ByteBuffer buffer)
     {
-        return (short) (packet.get() & 0xFF);
+        return (short) (buffer.get() & 0xFF);
     }
 
-    public static byte[] getClientHelloSessionID(ByteBuffer packet, short idLength)
+    public static byte[] getClientHelloSessionID(ByteBuffer buffer, short idLength)
     {
         byte[] toReturn = new byte[idLength];
-        packet.get(toReturn);
+        buffer.get(toReturn);
         return toReturn;
     }
 
-    public static int getCipherSuiteLength(ByteBuffer packet)
+    public static int getCipherSuiteLength(ByteBuffer buffer)
     {
-        return (int) (((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFF;
+        return (int) (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
     }
 
-    public static short getClientHelloCompressionMethodsLength(ByteBuffer packet)
+    public static byte[] getCipherSuites(ByteBuffer buffer, int cipher_length)
     {
-        return (short) (packet.get() & 0xFF);
+        byte[] toReturn = new byte[cipher_length];
+        buffer.get(toReturn);
+        return toReturn;
     }
 
-    public static int getClientHelloExtensionsLength(ByteBuffer packet)
+    public static short getClientHelloCompressionMethodsLength(ByteBuffer buffer)
     {
-        return (int) (((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFF;
+        return (short) (buffer.get() & 0xFF);
     }
 
-    public static String getClientHelloServerName(ByteBuffer packet)
+    public static byte[] getClientHelloCompressionMethods(ByteBuffer buffer, short compression_length)
     {
-        int start = 44 +
-                    getClientHelloSessionIdLength(packet, offset) +
-                    getCipherSuiteLength(packet, offset) +
-                    getClientHelloCompressionMethodsLength(packet, offset) +
-                    offset;
-        int length = getClientHelloExtensionsLength(packet, offset);
-        String hostname = null;
-        while(start < length)
-        {
-            short type = (short) ((((packet[start] & 0xFF) << 8) | (packet[start + 1] & 0xFF)) & 0xFFFF);
-            int extlen = (int) ((((packet[start + 2] & 0xFF) << 8) | (packet[start + 3] & 0xFF)) & 0xFFFF);
-            if(type == EXTENSION_TYPE_SERVER_NAME)
-            {
-                int NameListLength = (int) ((((packet[start + 4] & 0xFF) << 8) | (packet[start + 5] & 0xFF)) & 0xFFFF);
-                short NameType = (short) (packet[start + 6] & 0xFF);
-                int NameLength = (int) ((((packet[start + 7] & 0xFF) << 8) | (packet[start + 8] & 0xFF)) & 0xFFFF);
-                //Log.d("Handshake Handler", "Getting hostname: " + start + (start + NameLength));
-                hostname = new String(Arrays.copyOfRange(packet, start + 9, start + 9 + NameLength));
-                //Log.d("Handshake Handler", "Hostname: " + hostname);
-                start = length;
-            }
-            start += length;
-        }
+        byte[] toReturn = new byte[compression_length];
+        buffer.get(toReturn);
+        return toReturn;
+    }
+
+    public static int getClientHelloExtensionsLength(ByteBuffer buffer)
+    {
+        return (int) (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
+    }
+
+    public static int getExtensionType(ByteBuffer buffer)
+    {
+        return (int) (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
+    }
+
+    public static int getExtensionLength(ByteBuffer buffer)
+    {
+        return (int) (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
+    }
+
+
+    public static String getClientHelloServerName(ByteBuffer buffer)
+    {
+        String hostname;
+        int NameListLength = (int) ((((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF);
+        short NameType = (short) (buffer.get() & 0xFF);
+        int NameLength = (int) ((((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF);
+        byte[] hostname_bytes = new byte[NameLength];
+        buffer.get(hostname_bytes);
+        hostname = new String(hostname_bytes);
         return hostname;
     }
 
-    public static ArrayList<X509Certificate> getCertificates(ByteBuffer packet)
+    public static ArrayList<X509Certificate> getCertificates(ByteBuffer buffer)
     {
         try
         {
-            int certsLength = (int) (((packet[4 + offset] & 0xFF) << 16) | ((packet[5 + offset] & 0xFF) << 8) | (packet[6 + offset] & 0xFF)) & 0xFFFFFF;
+            int certsLength = (int) (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
+            //Log.d("TLSHandshake", "certsLength: " + certsLength);
+            //Log.d("TLSHandshake", "buffer: " + buffer.toString());
             int certLength = 0;
             ArrayList<X509Certificate> toReturn = new ArrayList<>();
             CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
 
-            for (int i = 7 + offset; i < certsLength + 7 + offset; i += certLength + 3)
+            for (int i = 0; i < certsLength; i += certLength + TLSHandshake.CERT_HEADER_LENGTH)
             {
-                certLength = (int) (((packet[i] & 0xFF) << 16) | ((packet[i + 1] & 0xFF) << 8) | (packet[i + 2] & 0xFF)) & 0xFFFFFF;
-                InputStream in = new ByteArrayInputStream(Arrays.copyOfRange(packet, i + 3, certLength + i + 3));
+                //Log.d("TLSHandshake", "getLength");
+                //Log.d("TLSHandshake", buffer.toString());
+                certLength = (int) (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
+                //Log.d("TLSHandshake", buffer.toString());
+                byte[] cert_bytes =  new byte[certLength];
+                //Log.d("TLSHandshake", "certLength: " + certLength);
+                //Log.d("TLSHandshake", "buffer: " + buffer.toString());
+                buffer.get(cert_bytes);
+                InputStream in = new ByteArrayInputStream(cert_bytes);
                 X509Certificate toAdd = (X509Certificate) certFactory.generateCertificate(in);
                 toReturn.add(toAdd);
             }
@@ -138,6 +156,7 @@ public class TLSHandshake
         } catch (Exception e)
         {
             Log.e("TLSRecord", "Java sucks " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }

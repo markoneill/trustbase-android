@@ -6,9 +6,9 @@ import java.io.IOException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 
+import edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.IChannelListener;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
-import edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler;
 import edu.byu.tlsresearch.TrustHub.Controllers.TransportLayer.UDPController;
 import edu.byu.tlsresearch.TrustHub.model.Connection;
 

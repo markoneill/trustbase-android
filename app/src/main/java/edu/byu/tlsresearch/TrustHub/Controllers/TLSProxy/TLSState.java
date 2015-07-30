@@ -3,18 +3,10 @@ package edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 
 import edu.byu.tlsresearch.TrustHub.Utils.TLSHandshake;
 import edu.byu.tlsresearch.TrustHub.Utils.TLSRecord;
@@ -25,6 +17,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
  */
 public class TLSState implements TCPInterface
 {
+    private static String TAG = "TLSState";
     private Map<Connection, connection_state> mStates = new HashMap<>();
 
     public class connection_state
@@ -67,8 +60,9 @@ public class TLSState implements TCPInterface
         public tls_state curState;
         public buf_state()
         {
-            buffer = ByteBuffer.allocate(2048);
+            buffer = ByteBuffer.allocate(65535);
             curState = tls_state.UNKNOWN;
+            toRead = 1;
         }
     }
 
@@ -84,41 +78,40 @@ public class TLSState implements TCPInterface
     @Override
     public byte[] sending(byte[] packet, Connection context)
     {
-        buf_state curCon = null;
+        connection_state conState = getState(context);
+        buf_state curCon = conState.sendBuffer;
         try
         {
-            connection_state conState = getState(context);
-            curCon = conState.sendBuffer;
-
             if(curCon.curState != tls_state.IRRELEVANT)
             {
-                curCon.buffer.put(packet);
-                //TODO: check overflow
+                Log.d(TAG, "Send Cur State " + curCon.curState + " " + context.toString());
+                Log.d(TAG, "" + curCon.buffer);
+                curCon.buffer.put(packet); //TODO: check overflow
                 curCon.buffer.flip();
-
                 while (canTransition(curCon))
                 {
                     switch (curCon.curState)
                     {
                         case UNKNOWN:
-                            //Log.d("VPN", "S Unknown");
+                            Log.d(TAG, "Send Unknown");
                             handle_state_unknown(curCon);
                             break;
                         case RECORD_LAYER:
-                            //Log.d("VPN", "S Record Layer");
+                            Log.d(TAG, "Send Record");
                             handle_state_record_layer(curCon);
                             break;
                         case HANDSHAKE_LAYER:
-                            //Log.d("VPN", "S Handshake Layer");
+                            Log.d(TAG, "Send Handshake");
                             handle_state_handshake_layer(curCon, conState);
                             break;
                         case CLIENT_HELLO_SENT:
-                            //Log.d("VPN", "S Client Hello Sent");
-                            handle_state_server_hello_done_sent(curCon);
+                            Log.d(TAG, "Send ClientHelloSent");
+                            handle_state_client_hello_sent(curCon);
                             break;
                         case IRRELEVANT:
-                            //Log.d("VPN", "S IRRELEVANT");
+                            Log.d(TAG, "Send Irrelevant");
                             curCon.buffer.position(curCon.buffer.limit());
+                            curCon.toRead = 0;
                             break;
                     }
                 }
@@ -129,9 +122,10 @@ public class TLSState implements TCPInterface
         {
             if(curCon != null)
             {
-                curCon.curState = tls_state.IRRELEVANT;
+                //curCon.curState = tls_state.IRRELEVANT;
             }
-            Log.d("VPN", "WHAT THE CRAP: " + e.getMessage() + "\n" + e.toString());
+            Log.d(TAG, "Send WHAT THE CRAP: " + e.getMessage() + "\n" + e.toString());
+            e.printStackTrace();
         }
 
         return packet;
@@ -140,51 +134,54 @@ public class TLSState implements TCPInterface
     @Override
     public byte[] received(byte[] packet, Connection context)
     {
-        buf_state curCon = null;
+        connection_state conState = getState(context);
+        buf_state curCon = conState.recvBuffer;
         try
         {
-            connection_state conState = getState(context);
-            curCon = conState.recvBuffer;
             if(curCon.curState != tls_state.IRRELEVANT)
             {
-                curCon.buffer.put(packet);
-
+                Log.d(TAG, "Read Cur State " + curCon.curState + " " + context.toString());
+                Log.d(TAG, ""+curCon.buffer);
+                curCon.buffer.put(packet);//TODO: check overflow
+                curCon.buffer.flip();
                 while (canTransition(curCon))
                 {
                     switch (curCon.curState)
                     {
                         case UNKNOWN:
-                            //Log.d("VPN", "Unknown");
+                            Log.d(TAG, "Read Unknown");
                             handle_state_unknown(curCon);
                             break;
                         case RECORD_LAYER:
-                            //Log.d("VPN", "Record Layer");
+                            Log.d(TAG, "Read Record_layer");
                             handle_state_record_layer(curCon);
                             break;
                         case HANDSHAKE_LAYER:
-                            //Log.d("VPN", "Handshake Layer");
+                            Log.d(TAG, "Read Handshake layer");
                             handle_state_handshake_layer(curCon, conState);
                             break;
                         case SERVER_HELLO_DONE_SENT:
-                            //Log.d("VPN", "Server Certificates Sent");
+                            Log.d(TAG, "Read Server Hello Done Sent");
                             handle_state_server_hello_done_sent(curCon);
                             break;
                         case IRRELEVANT:
-                            //Log.d("VPN", "IRRELEVANT");
+                            Log.d(TAG, "Read Irrelevant");
+                            curCon.buffer.position(curCon.buffer.limit());
                             curCon.toRead = 0;
                             break;
                     }
                 }
-                curCon.buffer.clear();
+                curCon.buffer.compact();
             }
         }
         catch(Exception e)
         {
             if(curCon != null)
             {
-                curCon.curState = tls_state.IRRELEVANT;
+                //curCon.curState = tls_state.IRRELEVANT;
             }
-            Log.d("VPN", "WHAT THE CRAP: " + e.getMessage() + "\n" + e.toString());
+            Log.d(TAG, "Receive WHAT THE CRAP: " + e.getMessage() + "\n" + e.toString());
+            e.printStackTrace();
         }
 
         return packet;
@@ -218,137 +215,108 @@ public class TLSState implements TCPInterface
         short tls_minor_version = TLSRecord.getMinorVersion(context.buffer);
         int tls_record_length = TLSRecord.getRecordLength(context.buffer);
 
-        //Log.d("VPN", "Major: " + packet[1+ context.readIndex] + " Minor: " + packet[2 + context.readIndex] + " RecordLength: " + packet[3 + context.readIndex] + " " + packet[4 + context.readIndex]);
-        //Log.d("VPN", "Major: " + tls_major_version + " Minor: " + tls_minor_version + " RecordLength: " + tls_record_length);
+        //Log.d(TAG, "Major: " + packet[1+ context.readIndex] + " Minor: " + packet[2 + context.readIndex] + " RecordLength: " + packet[3 + context.readIndex] + " " + packet[4 + context.readIndex]);
+        //Log.d(TAG, "Major: " + tls_major_version + " Minor: " + tls_minor_version + " RecordLength: " + tls_record_length);
 
-        if(content_type == TLSRecord.HANDSHAKE)
-        {
-            context.curState = tls_state.HANDSHAKE_LAYER;
-            context.toRead = tls_record_length;
-        }
-        else
-        {
-            context.curState = tls_state.IRRELEVANT;
-            context.toRead = 0;
-        }
+        context.curState = tls_state.HANDSHAKE_LAYER;
+        //Log.d(TAG, "TLS Record Size: " + tls_record_length);
+        context.toRead = tls_record_length;
     }
 
     private void handle_state_handshake_layer(buf_state context, connection_state con)
     {
         int tls_record_bytes = context.toRead;
-        //Log.d("VPN", "RecordLength: " + tls_record_bytes);
-        int handshake_length;
+        //Log.d(TAG, context.buffer.remaining() + " SHould be bigger than: " + tls_record_bytes + " " + context.buffer);
+        int handshake_message_length;
+        short type;
         while(tls_record_bytes > 0)
         {
-            short type = context.buffer.get();
-            handshake_length = context.buffer.getTLSHandshake.getHandshakeDataLength(packet, context.readIndex) + TLSHandshake.HANDSHAKE_HEADER_SIZE;
-            //Log.d("VPN", "MessageLength: " + handshake_length);
-            tls_record_bytes -= handshake_length;
-            int type = TLSHandshake.getHandshakeMessageType(packet, context.readIndex);
-            //Log.d("VPN", "Type: " + type);
+
+            type = TLSHandshake.getHandshakeMessageType(context.buffer);
+            handshake_message_length = TLSHandshake.getHandshakeDataLength(context.buffer);
+            tls_record_bytes -= handshake_message_length + TLSHandshake.HANDSHAKE_HEADER_SIZE;
             switch(type)
             {
                 case TLSHandshake.TYPE_CLIENT_HELLO:
-                    context.toRead = 0;
+                    Log.d("TAG", "Client Hello");
+                    context.toRead = 1;
                     context.curState = tls_state.CLIENT_HELLO_SENT;
-                    String hostname = getHostname(packet, context);
-                    if(hostname != null)
-                        con.hostname = getHostname(packet, context);
-                    context.readIndex += handshake_length;
+                    handle_client_hello(context, con);
                     break;
                 case TLSHandshake.TYPE_SERVER_HELLO:
-                    //Log.d("VPN", "Server Hello");
+                    Log.d("TAG", "Server Hello");
                     context.toRead = TLSRecord.RECORD_HEADER_SIZE;
                     context.curState = tls_state.RECORD_LAYER;
-                    context.readIndex += handshake_length;
+                    context.buffer.position(context.buffer.position() + handshake_message_length);
                     break;
                 case TLSHandshake.TYPE_CERTIFICATE:
-                    //Log.d("VPN", "Certificate");
-                    handle_certificate(packet, context, con);
+                    Log.d("TAG", "Cert");
                     context.toRead = TLSRecord.RECORD_HEADER_SIZE;
                     context.curState = tls_state.RECORD_LAYER;
-                    context.readIndex += handshake_length;
+                    handle_certificate(context, con);
                     break;
                 case TLSHandshake.TYPE_SERVER_KEY_EXCHANGE:
-                    //Log.d("VPN", "TYPE_SERVER_KEY_EXCHANGE");
+                    Log.d("TAG", "Server key exchange");
                     context.toRead = TLSRecord.RECORD_HEADER_SIZE;
                     context.curState = tls_state.RECORD_LAYER;
-                    context.readIndex += handshake_length;
+                    context.buffer.position(context.buffer.position() + handshake_message_length);
+                    break;
                 case TLSHandshake.TYPE_SERVER_HELLO_DONE:
-                    //Log.d("VPN", "TYPE_SERVER_HELLO_DONE");
-                    context.toRead = 0;
+                    Log.d("TAG", "Server Hello Done");
+                    context.toRead = 1;
                     context.curState = tls_state.SERVER_HELLO_DONE_SENT;
-                    context.readIndex += handshake_length;
+                    context.buffer.position(context.buffer.position() + handshake_message_length);
                     break;
                 default:
+                    Log.d("TAG", "unknown");
                     context.toRead = 0;
+                    context.buffer.position(context.buffer.limit());
                     context.curState = tls_state.IRRELEVANT;
-                    context.readIndex += handshake_length;
                     tls_record_bytes = 0;
                     break;
             }
         }
     }
 
-
-    private void handle_certificate(byte[] packet, buf_state context, connection_state con)
+    private void handle_client_hello(buf_state context, connection_state con)
     {
-        int handshake_message_length = TLSHandshake.getHandshakeDataLength(packet, context.readIndex);
-        final List<X509Certificate> certs = TLSHandshake.getCertificates(packet, context.readIndex);
-        Log.d("TLSState", "Got Certificate for: " + con.hostname);
-
-        boolean trusted = false;
-        try
+        TLSHandshake.getClientHelloMajorVersion(context.buffer);
+        TLSHandshake.getClientHelloMinorVersion(context.buffer);
+        TLSHandshake.getClientHelloRandom(context.buffer);
+        short id_length = TLSHandshake.getClientHelloSessionIdLength(context.buffer);
+        TLSHandshake.getClientHelloSessionID(context.buffer, id_length);
+        int cipher_length = TLSHandshake.getCipherSuiteLength(context.buffer);
+        TLSHandshake.getCipherSuites(context.buffer, cipher_length);
+        short compression_length = TLSHandshake.getClientHelloCompressionMethodsLength(context.buffer);
+        TLSHandshake.getClientHelloCompressionMethods(context.buffer, compression_length);
+        int extensions_length = TLSHandshake.getClientHelloExtensionsLength(context.buffer);
+        while(extensions_length > 0)
         {
-            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init((KeyStore)null);
-            for(TrustManager tm: trustManagerFactory.getTrustManagers())
+            int extension_type = TLSHandshake.getExtensionType(context.buffer);
+            int extension_length = TLSHandshake.getExtensionLength(context.buffer);
+            if(extension_type == TLSHandshake.EXTENSION_TYPE_SERVER_NAME)
             {
-                if(tm instanceof X509TrustManager)
-                {
-                    try
-                    {
-                        X509Certificate[] chain = new X509Certificate[certs.size()];
-                        certs.toArray(chain);
-                        ((X509TrustManager)tm).checkServerTrusted(chain, "RSA");
-                        trusted = true;
-                    } catch (CertificateException e)
-                    {
-                        Log.d("TLSState", e.getMessage());
-                        //Not trusted
-                    }
-                }
+                con.hostname = TLSHandshake.getClientHelloServerName(context.buffer);
             }
-
-        } catch (NoSuchAlgorithmException e)
-        {
-
-        } catch (KeyStoreException e)
-        {
-
+            extensions_length -= extension_length;
         }
-
-        Log.d("TLSState", "Trusted: " + trusted);
-
-        if(trusted)
-            con.MitM = mitm_state.NOPROXY;
-        else
-            con.MitM = mitm_state.CHECKCERT;
     }
 
-    private String getHostname(byte[] packet, buf_state context)
+
+    private void handle_certificate(buf_state context, connection_state con)
     {
-        int hello_length = TLSHandshake.getHandshakeDataLength(packet, context.readIndex);
-        return TLSHandshake.getClientHelloServerName(packet, context.readIndex);
+        final List<X509Certificate> certs = TLSHandshake.getCertificates(context.buffer);
+        //Log.d(TAG, "Got Certificate for: " + con.hostname);
+        //TODO Check policy engine
     }
 
-    private void handle_state_client_hello_sent(byte[] packet, buf_state context)
+    private void handle_state_client_hello_sent(buf_state context)
     {
         context.toRead = 0;
         context.curState = tls_state.IRRELEVANT;
     }
 
-    private void handle_state_server_hello_done_sent(byte[] packet, buf_state context)
+    private void handle_state_server_hello_done_sent(buf_state context)
     {
         context.toRead = 0;
         context.curState = tls_state.IRRELEVANT;

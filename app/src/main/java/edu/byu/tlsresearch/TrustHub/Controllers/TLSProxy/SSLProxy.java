@@ -1,7 +1,6 @@
 package edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy;
 
 import java.io.FileInputStream;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
 
@@ -11,8 +10,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManagerFactory;
-
-import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
 
 /**
  * Created by sheidbr on 7/27/15.

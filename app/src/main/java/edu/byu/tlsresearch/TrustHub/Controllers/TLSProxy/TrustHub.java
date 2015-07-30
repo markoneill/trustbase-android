@@ -4,15 +4,9 @@ import android.util.Log;
 
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 
-import javax.net.ssl.SSLException;
-
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
-import edu.byu.tlsresearch.TrustHub.Controllers.Socket.IChannelListener;
-import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
 import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
@@ -20,7 +14,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
  */
 public class TrustHub
 {
-    private static Map<Connection, TLSState> mStates = new HashMap<Connection, TLSState>();
+    private static TLSState mStates = new TLSState();
     private static Map<Connection, SSLProxy> mProxies = new HashMap<Connection, SSLProxy>();
 
     private static SSLProxy getProxy(Connection key)
@@ -48,36 +42,38 @@ public class TrustHub
 
     public static void proxyOut(byte[] toWrite, SelectionKey key)
     {
-        byte[] toReturn = toWrite;
-        if(key.attachment() instanceof TCPChannel)
-        {
-            SSLProxy curProxy = getProxy(((TCPChannel) key.attachment()).getmContext());
-            if(curProxy != null)
-            {
-                try
-                {
-                    curProxy.send(toWrite);
-                }
-                catch(SSLException e)
-                {
-                    Log.e("TrustHub", "SSL Error on: " + ((TCPChannel) key.attachment()).getmContext().toString());
-                    //TODO reset the connection or something here
-                }
-            }
-            else
-            {
-                Log.d("TrustHub", "Proxy does not exists for: " + ((TCPChannel) key.attachment()).getmContext().toString());
-            }
-        }
-        else
-        {
-            Log.d("TrustHub", "NOT TCPWrite");
-        }
-        SocketPoller.getInstance().noProxySend(key, toReturn);
+        mStates.sending(toWrite, ((TCPChannel) key.attachment()).getmContext());
+//        byte[] toReturn = toWrite;
+//        if(key.attachment() instanceof TCPChannel)
+//        {
+//            SSLProxy curProxy = getProxy(((TCPChannel) key.attachment()).getmContext());
+//            if(curProxy != null)
+//            {
+//                try
+//                {
+//                    curProxy.send(toWrite);
+//                }
+//                catch(SSLException e)
+//                {
+//                    Log.e("TrustHub", "SSL Error on: " + ((TCPChannel) key.attachment()).getmContext().toString());
+//                    //TODO reset the connection or something here
+//                }
+//            }
+//            else
+//            {
+//                Log.d("TrustHub", "Proxy does not exists for: " + ((TCPChannel) key.attachment()).getmContext().toString());
+//            }
+//        }
+//        else
+//        {
+//            Log.d("TrustHub", "NOT TCPWrite");
+//        }
+//        SocketPoller.getInstance().noProxySend(key, toReturn);
     }
 
     public static void proxyIn(byte[] packet, SelectionKey key)
     {
-        ((IChannelListener) key.attachment()).receive(packet);
+        mStates.received(packet, ((TCPChannel) key.attachment()).getmContext());
+        //((IChannelListener) key.attachment()).receive(packet);
     }
 }

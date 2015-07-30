@@ -2,9 +2,7 @@ package edu.byu.tlsresearch.TrustHub.Controllers.Utils;
 
 import android.util.Base64;
 import android.util.Log;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -17,7 +15,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 import java.util.List;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler;
 

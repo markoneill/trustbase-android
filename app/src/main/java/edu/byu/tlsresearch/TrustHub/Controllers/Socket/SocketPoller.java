@@ -1,5 +1,7 @@
 package edu.byu.tlsresearch.TrustHub.Controllers.Socket;
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
@@ -17,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import android.util.Log;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.UDPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub;
@@ -61,12 +61,30 @@ public class SocketPoller implements Runnable
     public void proxySend(SelectionKey key, byte[] toWrite)
     {
         TrustHub.proxyOut(toWrite, key);
+        noProxySend(key, toWrite);
     }
 
     public void noProxySend(SelectionKey key, byte[] toWrite)
     {
         // TODO: syncronize reads and writes to this buffer
         mToWrite.get(key).add(toWrite);
+    }
+
+    private void proxyRead(SelectionKey key, ByteBuffer packet, int length)
+    {
+        byte[] toRead = new byte[packet.remaining()];
+        packet.get(toRead);
+        ((IChannelListener) key.attachment()).receive(toRead);
+        TrustHub.proxyIn(toRead, key);
+        packet.clear();
+    }
+
+    private void noProxyRead(SelectionKey key, ByteBuffer packet, int length)
+    {
+        byte[] toRead = new byte[packet.remaining()];
+        packet.get(toRead);
+        ((IChannelListener) key.attachment()).receive(toRead);
+        packet.clear();
     }
 
     public SelectionKey registerChannel(SelectableChannel toRegister, Connection con, IChannelListener writeBack)
@@ -232,21 +250,4 @@ public class SocketPoller implements Runnable
             }
         }
     }
-
-    private void proxyRead(SelectionKey key, ByteBuffer packet, int length)
-    {
-        byte[] toRead = new byte[packet.remaining()];
-        packet.get(toRead);
-        TrustHub.proxyIn(toRead, key);
-        packet.clear();
-    }
-
-    private void noProxyRead(SelectionKey key, ByteBuffer packet, int length)
-    {
-        byte[] toRead = new byte[packet.remaining()];
-        packet.get(toRead);
-        ((IChannelListener) key.attachment()).receive(toRead);
-        packet.clear();
-    }
-
 }

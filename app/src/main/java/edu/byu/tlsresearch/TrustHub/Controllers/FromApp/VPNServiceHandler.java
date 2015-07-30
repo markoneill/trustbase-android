@@ -20,9 +20,9 @@ import java.util.Collections;
 import java.util.List;
 
 import edu.byu.tlsresearch.TrustHub.API.Communicator;
-import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TCPInterface;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
+import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TCPInterface;
 import edu.byu.tlsresearch.TrustHub.model.IPaddr;
 
 /**
