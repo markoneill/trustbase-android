@@ -2,9 +2,12 @@ package edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy;
 
 import android.util.Log;
 
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.net.ssl.SSLException;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
 import edu.byu.tlsresearch.TrustHub.model.Connection;
@@ -14,66 +17,100 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
  */
 public class TrustHub
 {
-    private static TLSState mStates = new TLSState();
-    private static Map<Connection, SSLProxy> mProxies = new HashMap<Connection, SSLProxy>();
+    private String TAG = "TrustHub";
+    private TLSState tls_state_handler = new TLSState();
+    private Map<Connection, connection_state> mStates = new HashMap<>();
 
-    private static SSLProxy getProxy(Connection key)
+    private static TrustHub mInstance;
+
+    private enum proxy_state
     {
-        if(mProxies.containsKey(key))
+        START,
+        KILL,
+        NOPROXY,
+        PROXY
+    }
+
+    public class buf_state
+    {
+        public ByteBuffer buffer;
+        public int toRead;
+        public TLSState.tls_state curState;
+        public buf_state()
         {
-            return mProxies.get(key);
+            buffer = ByteBuffer.allocate(65535); //TODO Make this not so big and check overflows
+            curState = TLSState.tls_state.UNKNOWN;
+            toRead = 1;
         }
-        else
+    }
+
+    public class connection_state
+    {
+        public buf_state sendBuffer;
+        public buf_state recvBuffer;
+        public String hostname;
+        public proxy_state proxyState;
+        private SSLProxy myProxy;
+
+        public connection_state(Connection context)
         {
-            try
+            sendBuffer = new buf_state();
+            recvBuffer = new buf_state();
+            hostname = context.getDestIP();
+        }
+
+        private SSLProxy getProxy() throws Exception
+        {
+            if(myProxy == null)
             {
                 SSLProxy toReturn = new SSLProxy();
-                mProxies.put(key, toReturn);
-                return toReturn;
             }
-            catch (Exception e)
-            {
-                Log.e("Trusthub", "Unable to proxy connection: " + key.toString());
-                mProxies.put(key, null);
-                return null;
-            }
+            return myProxy;
         }
     }
 
-    public static void proxyOut(byte[] toWrite, SelectionKey key)
+    public static TrustHub getInstance()
     {
-        mStates.sending(toWrite, ((TCPChannel) key.attachment()).getmContext());
-//        byte[] toReturn = toWrite;
-//        if(key.attachment() instanceof TCPChannel)
-//        {
-//            SSLProxy curProxy = getProxy(((TCPChannel) key.attachment()).getmContext());
-//            if(curProxy != null)
-//            {
-//                try
-//                {
-//                    curProxy.send(toWrite);
-//                }
-//                catch(SSLException e)
-//                {
-//                    Log.e("TrustHub", "SSL Error on: " + ((TCPChannel) key.attachment()).getmContext().toString());
-//                    //TODO reset the connection or something here
-//                }
-//            }
-//            else
-//            {
-//                Log.d("TrustHub", "Proxy does not exists for: " + ((TCPChannel) key.attachment()).getmContext().toString());
-//            }
-//        }
-//        else
-//        {
-//            Log.d("TrustHub", "NOT TCPWrite");
-//        }
-//        SocketPoller.getInstance().noProxySend(key, toReturn);
+        if (mInstance == null)
+        {
+            mInstance = new TrustHub();
+        }
+        return mInstance;
     }
 
-    public static void proxyIn(byte[] packet, SelectionKey key)
+
+    public connection_state getState(Connection context)
     {
-        mStates.received(packet, ((TCPChannel) key.attachment()).getmContext());
-        //((IChannelListener) key.attachment()).receive(packet);
+        if(!mStates.containsKey(context))
+        {
+            mStates.put(context, new connection_state(context));
+        }
+        return mStates.get(context);
+    }
+
+    public void proxyOut(byte[] toWrite, SelectionKey key)
+    {
+        Connection conn = ((TCPChannel) key.attachment()).getmContext();
+        connection_state conState = getState(conn);
+        if(conState.sendBuffer.curState != TLSState.tls_state.IRRELEVANT)
+        {
+            conState.sendBuffer.buffer.put(toWrite);
+            conState.sendBuffer.buffer.flip();
+            TLSState.handle(conState, conState.sendBuffer);
+            conState.sendBuffer.buffer.compact();
+        }
+    }
+
+    public void proxyIn(byte[] packet, SelectionKey key)
+    {
+        Connection conn = ((TCPChannel) key.attachment()).getmContext();
+        connection_state conState = getState(conn);
+        if(conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT)
+        {
+            conState.recvBuffer.buffer.put(packet);
+            conState.recvBuffer.buffer.flip();
+            TLSState.handle(conState, conState.recvBuffer);
+            conState.recvBuffer.buffer.compact();
+        }
     }
 }
