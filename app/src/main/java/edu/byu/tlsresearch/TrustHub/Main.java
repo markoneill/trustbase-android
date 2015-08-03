@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -12,7 +13,7 @@ import android.view.View;
 import edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler;
 
 
-public class Main extends ActionBarActivity implements View.OnClickListener
+public class Main extends AppCompatActivity implements View.OnClickListener
 {
     VPNServiceHandler service = null;
     @Override
