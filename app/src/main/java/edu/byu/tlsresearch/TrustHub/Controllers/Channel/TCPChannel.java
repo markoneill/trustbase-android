@@ -43,6 +43,11 @@ public class TCPChannel implements IChannelListener
         mState = TCBState.START;
     }
 
+    public void replaceChannel(SelectionKey newKey)
+    {
+        mChannelKey = newKey;
+    }
+
     @Override
     public void receive(byte[] payload)
     {

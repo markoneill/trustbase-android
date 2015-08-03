@@ -61,7 +61,6 @@ public class SocketPoller implements Runnable
     public void proxySend(SelectionKey key, byte[] toWrite)
     {
         TrustHub.getInstance().proxyOut(toWrite, key);
-        noProxySend(key, toWrite);
     }
 
     public void noProxySend(SelectionKey key, byte[] toWrite)
@@ -74,7 +73,6 @@ public class SocketPoller implements Runnable
     {
         byte[] toRead = new byte[packet.remaining()];
         packet.get(toRead);
-        ((IChannelListener) key.attachment()).receive(toRead);
         TrustHub.getInstance().proxyIn(toRead, key);
         packet.clear();
     }

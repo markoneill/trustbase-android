@@ -135,7 +135,7 @@ public class TLSState
             {
                 case TLSHandshake.TYPE_CLIENT_HELLO:
                     Log.d(TAG, "Client Hello");
-                    context.toRead = 1;
+                    context.toRead = 0;
                     context.curState = tls_state.CLIENT_HELLO_SENT;
                     handle_client_hello(context, con);
                     break;
@@ -204,6 +204,7 @@ public class TLSState
         final List<X509Certificate> certs = TLSHandshake.getCertificates(context.buffer);
         //Log.d(TAG, "Got Certificate for: " + con.hostname);
         //TODO Check policy engine
+        con.proxyState = TrustHub.proxy_state.NOPROXY; //TODO change from default
     }
 
     private static void handle_state_client_hello_sent(buf_state context)
