@@ -122,7 +122,7 @@ public class TLSState
     private static void handle_state_handshake_layer(buf_state context, connection_state con)
     {
         int tls_record_bytes = context.toRead;
-        //Log.d(TAG, context.buffer.remaining() + " SHould be bigger than: " + tls_record_bytes + " " + context.buffer);
+        Log.d(TAG, context.buffer.remaining() + " Should be bigger than: " + tls_record_bytes + " " + context.buffer);
         int handshake_message_length;
         short type;
         while(tls_record_bytes > 0)
@@ -185,16 +185,19 @@ public class TLSState
         TLSHandshake.getCipherSuites(context.buffer, cipher_length);
         short compression_length = TLSHandshake.getClientHelloCompressionMethodsLength(context.buffer);
         TLSHandshake.getClientHelloCompressionMethods(context.buffer, compression_length);
-        int extensions_length = TLSHandshake.getClientHelloExtensionsLength(context.buffer);
-        while(extensions_length > 0)
+        if(context.buffer.hasRemaining())
         {
-            int extension_type = TLSHandshake.getExtensionType(context.buffer);
-            int extension_length = TLSHandshake.getExtensionLength(context.buffer);
-            if(extension_type == TLSHandshake.EXTENSION_TYPE_SERVER_NAME)
+            int extensions_length = TLSHandshake.getClientHelloExtensionsLength(context.buffer);
+            while (extensions_length > 0)
             {
-                con.hostname = TLSHandshake.getClientHelloServerName(context.buffer);
+                int extension_type = TLSHandshake.getExtensionType(context.buffer);
+                int extension_length = TLSHandshake.getExtensionLength(context.buffer);
+                if (extension_type == TLSHandshake.EXTENSION_TYPE_SERVER_NAME)
+                {
+                    con.hostname = TLSHandshake.getClientHelloServerName(context.buffer);
+                }
+                extensions_length -= extension_length;
             }
-            extensions_length -= extension_length;
         }
     }
 

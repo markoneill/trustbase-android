@@ -2,6 +2,7 @@ package edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy;
 
 import android.util.Log;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
@@ -52,22 +53,19 @@ public class TrustHub
         public buf_state recvBuffer;
         public String hostname;
         public proxy_state proxyState;
-        private SSLProxy myProxy;
+        public SSLProxy myProxy;
 
         public connection_state(Connection context)
         {
             sendBuffer = new buf_state();
             recvBuffer = new buf_state();
             hostname = context.getDestIP();
+            proxyState = proxy_state.START;
         }
 
-        private SSLProxy getProxy() throws Exception
+        public void startProxy(SelectionKey key) throws Exception
         {
-            if(myProxy == null)
-            {
-                SSLProxy toReturn = new SSLProxy();
-            }
-            return myProxy;
+            myProxy = new SSLProxy(key);
         }
     }
 
@@ -107,18 +105,29 @@ public class TrustHub
                         // We no longer care about this connection
                         conState.sendBuffer.curState = TLSState.tls_state.IRRELEVANT;
                         // TODO delete the buffer?
-                        reallySend = toWrite;
+                        reallySend = toWrite; // Don't want to use buffer because
+                                            // ClientHello is in there
                         break;
                     case PROXY:
-                        //TODO proxy handshake should've already taken place
+                        byte[] proxySend = new byte[conState.sendBuffer.buffer.remaining()];
+                        conState.sendBuffer.buffer.get(proxySend); // Get all the handshake data
+                                                                    // i.e. ClientHello to proxy
+                        try
+                        {
+                            conState.myProxy.send(proxySend);
+                        }
+                        catch(SSLException e)
+                        {
+                            Log.e(TAG, "Proxy Send failed: " + e.getMessage());
+                        }
                         Log.d(TAG, "Proxy");
                         break;
                     case KILL:
                         Log.e(TAG, "Should've sent a bad cert why are we sending crap still?");
                         break;
                     case START:
-                        Log.e(TAG, "Shouldn't send anything after ClientHello " +
-                                    "and before ServerHellodDone");
+                        // Such as session renegotiation crap (already put in buffer)
+                        reallySend = toWrite;
                         break;
                 }
             }
@@ -185,7 +194,36 @@ public class TrustHub
                         //TODO delete the buffer?
                         break;
                     case PROXY:
-                        //TODO Handshake
+                        if(conState.myProxy == null)
+                        {
+                            try
+                            {
+                                // Dump the Server responses and restart the connection
+                                conState.recvBuffer.buffer.clear();
+                                key = ((TCPChannel) key.attachment()).replaceChannel();
+                                // Start of proxying
+                                conState.startProxy(key);
+                                conState.sendBuffer.buffer.flip();
+                                byte[] clientHello = new byte[conState.sendBuffer.buffer.remaining()];
+                                conState.sendBuffer.buffer.get(clientHello);
+                                conState.sendBuffer.buffer.compact();
+
+                                conState.myProxy.send(clientHello);
+                            }
+                            catch(SSLException e)
+                            {
+                                Log.e(TAG, "Send clientHello failed: " + e.getMessage());
+                            }
+                            catch(IOException e)
+                            {
+                                Log.e(TAG, "Unable to open new socket: " + e.getMessage());
+                            } catch (Exception e)
+                            {
+                                Log.e(TAG, "Proxy failed: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+
                         break;
                     case KILL:
                         //TODO replaceCert
@@ -198,8 +236,17 @@ public class TrustHub
             }
             else
             {
-                //Haven't got it all yet so wait
-                conState.recvBuffer.curState = TLSState.tls_state.UNKNOWN;
+                if(conState.recvBuffer.curState == TLSState.tls_state.IRRELEVANT)
+                {
+                    reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
+                    conState.recvBuffer.buffer.get(reallyReceive);
+                    //TODO delete buffer?
+                }
+                else
+                {
+                    //Haven't got it all yet so wait
+                    conState.recvBuffer.curState = TLSState.tls_state.UNKNOWN;
+                }
             }
             conState.recvBuffer.buffer.compact();
         }
@@ -211,5 +258,24 @@ public class TrustHub
         {
             ((IChannelListener) key.attachment()).receive(packet);
         }
+    }
+
+    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes)
+    {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+    public static String bytesToHex(ByteBuffer bd)
+    {
+        ByteBuffer bb = bd.duplicate();
+        byte[] b = new byte[bb.remaining()];
+        bb.get(b);
+        return bytesToHex(b);
     }
 }

@@ -1,8 +1,15 @@
 package edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -11,21 +18,24 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManagerFactory;
 
+import edu.byu.tlsresearch.TrustHub.Controllers.Socket.IChannelListener;
+import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
+
 /**
  * Created by sheidbr on 7/27/15.
  */
 public class SSLProxy
 {
     private static SSLContext sslc = null;
-    private static String storeFile = "testkeys";
-    private void setupContext() throws Exception
+    private static String storeFile = "trusthubstore.jks";
+    private void setupContext() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException
     {
         if(sslc == null)
         {
             KeyStore ks = KeyStore.getInstance("JKS");
             KeyStore ts = KeyStore.getInstance("JKS");
 
-            char[] passphrase = "passphrase".toCharArray();
+            char[] passphrase = "password".toCharArray();
 
             ks.load(new FileInputStream(storeFile), passphrase);
             ts.load(new FileInputStream(storeFile), passphrase);
@@ -53,8 +63,11 @@ public class SSLProxy
     private ByteBuffer toNetwork;
     private ByteBuffer fromNetwork;
 
-    public SSLProxy() throws Exception
+    private SelectionKey mKey;
+
+    public SSLProxy(SelectionKey key) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException
     {
+        mKey = key;
         setupContext();
 
         clientSideEngine = sslc.createSSLEngine();
@@ -94,11 +107,15 @@ public class SSLProxy
         toNetwork.flip();
         if(toApp.hasRemaining())
         {
-            //TODO write to app
+            byte[] toReceive = new byte[toApp.remaining()];
+            toApp.get(toReceive);
+            ((IChannelListener) mKey.attachment()).receive(toReceive);
         }
         if(toNetwork.hasRemaining())
         {
-            //TODO write to SocketPoller
+            byte[] toSend = new byte[toNetwork.remaining()];
+            toNetwork.get(toSend);
+            SocketPoller.getInstance().noProxySend(mKey, toSend);
         }
         toApp.clear();
         toNetwork.clear();

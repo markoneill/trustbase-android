@@ -32,20 +32,22 @@ public class TCPChannel implements IChannelListener
     public TCPChannel(Connection context, byte[] packet) throws IOException
     {
         mContext = context;
-        InetSocketAddress toConnect = new InetSocketAddress(context.getDestIP(),
-                context.getDestPort());
         toACK = TCPHeader.getSequenceNumber(packet);
         toSEQ = 0;
-        SocketChannel socket = SocketChannel.open();
-        VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
-        socket.connect(toConnect);
-        mChannelKey = SocketPoller.getInstance().registerChannel(socket, context, this);
+        replaceChannel();
         mState = TCBState.START;
     }
 
-    public void replaceChannel(SelectionKey newKey)
+    public SelectionKey replaceChannel() throws IOException
     {
-        mChannelKey = newKey;
+        //TODO close the original one
+        InetSocketAddress toConnect = new InetSocketAddress(mContext.getDestIP(),
+                mContext.getDestPort());
+        SocketChannel socket = SocketChannel.open();
+        VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
+        socket.connect(toConnect);
+        mChannelKey = SocketPoller.getInstance().registerChannel(socket, mContext, this);
+        return mChannelKey;
     }
 
     @Override
