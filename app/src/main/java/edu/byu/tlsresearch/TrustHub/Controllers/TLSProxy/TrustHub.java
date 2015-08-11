@@ -5,6 +5,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,6 +55,7 @@ public class TrustHub
         public String hostname;
         public proxy_state proxyState;
         public SSLProxy myProxy;
+        public KeyStore spoofedStore;
 
         public connection_state(Connection context)
         {
@@ -65,7 +67,7 @@ public class TrustHub
 
         public void startProxy(SelectionKey key) throws Exception
         {
-            myProxy = new SSLProxy(key);
+            myProxy = new SSLProxy(key, spoofedStore, "password");
         }
     }
 
@@ -120,7 +122,6 @@ public class TrustHub
                         {
                             Log.e(TAG, "Proxy Send failed: " + e.getMessage());
                         }
-                        Log.d(TAG, "Proxy");
                         break;
                     case KILL:
                         Log.e(TAG, "Should've sent a bad cert why are we sending crap still?");
@@ -198,6 +199,7 @@ public class TrustHub
                         {
                             try
                             {
+                                Log.d(TAG, "Start proxy: " + conState.hostname);
                                 // Dump the Server responses and restart the connection
                                 conState.recvBuffer.buffer.clear();
                                 key = ((TCPChannel) key.attachment()).replaceChannel();
@@ -207,12 +209,13 @@ public class TrustHub
                                 byte[] clientHello = new byte[conState.sendBuffer.buffer.remaining()];
                                 conState.sendBuffer.buffer.get(clientHello);
                                 conState.sendBuffer.buffer.compact();
-
+                                Log.d(TAG, "Sending Client Hello");
                                 conState.myProxy.send(clientHello);
                             }
                             catch(SSLException e)
                             {
                                 Log.e(TAG, "Send clientHello failed: " + e.getMessage());
+                                e.printStackTrace();
                             }
                             catch(IOException e)
                             {

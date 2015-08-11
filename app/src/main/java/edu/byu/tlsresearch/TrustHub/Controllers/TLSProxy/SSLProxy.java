@@ -1,5 +1,7 @@
 package edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy;
 
+import android.util.Log;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -41,25 +43,17 @@ import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
  */
 public class SSLProxy
 {
+    private static String TAG = "SSLProxy";
     private static SSLContext sslc = null;
-    private static String storeFile = "trusthubstore.jks";
-    private void setupContext() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException
+    private void setupContext(KeyStore spoofed, String passphrase) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException
     {
         if(sslc == null)
         {
-            KeyStore ks = KeyStore.getInstance("JKS");
-            KeyStore ts = KeyStore.getInstance("JKS");
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
+            kmf.init(spoofed, passphrase.toCharArray());
 
-            char[] passphrase = "password".toCharArray();
-
-            ks.load(new FileInputStream(storeFile), passphrase);
-            ts.load(new FileInputStream(storeFile), passphrase);
-
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-            kmf.init(ks, passphrase);
-
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-            tmf.init(ts);
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+            tmf.init(spoofed);
 
             sslc = SSLContext.getInstance("TLS");
             sslc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
@@ -80,10 +74,10 @@ public class SSLProxy
 
     private SelectionKey mKey;
 
-    public SSLProxy(SelectionKey key) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException
+    public SSLProxy(SelectionKey key, KeyStore spoofed, String passphrase) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException
     {
         mKey = key;
-        setupContext();
+        setupContext(spoofed, passphrase);
 
         clientSideEngine = sslc.createSSLEngine();
         clientSideEngine.setUseClientMode(false);
@@ -104,6 +98,7 @@ public class SSLProxy
 
     public void send(byte[] toSend) throws javax.net.ssl.SSLException
     {
+        Log.d(TAG, "Send");
         handle(toSend, toApp, fromApp, clientSideEngine, clientResult,
                 cTos, sToc, toNetwork, serverSideEngine, serverResult);
         writeout();
@@ -111,6 +106,7 @@ public class SSLProxy
 
     public void receive(byte[] toSend) throws javax.net.ssl.SSLException
     {
+        Log.d(TAG, "Receive");
         handle(toSend, toNetwork, fromNetwork, serverSideEngine, serverResult,
                 sToc, cTos, toApp, clientSideEngine, clientResult);
         writeout();
@@ -122,12 +118,14 @@ public class SSLProxy
         toNetwork.flip();
         if(toApp.hasRemaining())
         {
+            Log.d(TAG, "toApp");
             byte[] toReceive = new byte[toApp.remaining()];
             toApp.get(toReceive);
             ((IChannelListener) mKey.attachment()).receive(toReceive);
         }
         if(toNetwork.hasRemaining())
         {
+            Log.d(TAG, "toNetwork");
             byte[] toSend = new byte[toNetwork.remaining()];
             toNetwork.get(toSend);
             SocketPoller.getInstance().noProxySend(mKey, toSend);

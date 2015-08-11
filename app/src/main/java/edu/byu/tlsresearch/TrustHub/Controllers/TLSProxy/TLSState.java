@@ -205,8 +205,11 @@ public class TLSState
         final List<X509Certificate> certs = TLSHandshake.getCertificates(context.buffer);
         Log.d(TAG, "Got Certificate for: " + con.hostname);
         //TODO Check policy engine
-        CertSpoofer.generateCert(certs.get(0));
-        con.proxyState = TrustHub.proxy_state.NOPROXY; //TODO change from default
+        con.proxyState = TrustHub.proxy_state.PROXY; //TODO change from default
+        if(con.proxyState == TrustHub.proxy_state.PROXY)
+        {
+            con.spoofedStore = CertSpoofer.generateCert(certs.get(0));
+        }
     }
 
     private static void handle_state_client_hello_sent(buf_state context)

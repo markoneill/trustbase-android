@@ -42,7 +42,7 @@ public class CertSpoofer
         {
             mKS = KeyStore.getInstance("PKCS12");
             mKS.load(assets.open("TrustHubstore.p12"), "password".toCharArray());
-            Log.d(TAG, "Keystore loaded");
+            //Log.d(TAG, "Keystore loaded");
         } catch (IOException e)
         {
             e.printStackTrace();
@@ -98,13 +98,13 @@ public class CertSpoofer
 
             newCert.sign(AlgorithmID.sha256WithRSAEncryption, privKey);
 
-            Log.d(TAG, mNewCertPair.getPublic().toString());
-            Log.d(TAG, newCert.toString());
+            //Log.d(TAG, mNewCertPair.getPublic().toString());
+            //Log.d(TAG, newCert.toString());
 
             KeyStore newKS = KeyStore.getInstance("PKCS12");
             newKS.load(null, null);
             Certificate[] chain = {newCert, caCert};
-            newKS.setKeyEntry("ForgedCert", privKey, null, chain);
+            newKS.setKeyEntry("ForgedCert", mNewCertPair.getPrivate(), "password".toCharArray(), chain);
             return newKS;
         }
         catch (Exception e)
