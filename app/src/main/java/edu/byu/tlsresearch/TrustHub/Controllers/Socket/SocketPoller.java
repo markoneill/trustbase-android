@@ -203,6 +203,8 @@ public class SocketPoller implements Runnable
 
     private void handleWrite(SelectionKey key) throws IOException
     {
+        //TODO This errors sometimes withh null object reference
+        // I think it is perhaps running out of memory and I can't make a new one
         if (!mToWrite.get(key).isEmpty()) //TODO: switch this back to while?
         {
             byte[] toWrite = mToWrite.get(key).get(0);

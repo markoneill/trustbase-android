@@ -23,6 +23,21 @@ import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
 
 /**
  * Created by sheidbr on 7/27/15.
+ *
+ * Concurrency Notes: There are two concurrency issues to be aware of:
+ *
+ * The wrap() and unwrap() methods may execute concurrently of each other.
+ * The SSL/TLS protocols employ ordered packets. Applications must take care to ensure that generated packets are delivered in sequence. If packets arrive out-of-order, unexpected or fatal results may occur.
+ *
+ * For example:
+ *
+ * synchronized (outboundLock) {
+ * sslEngine.wrap(src, dst);
+ * outboundQueue.put(dst);
+ * }
+ *
+ * As a corollary, two threads must not attempt to call the same method (either wrap() or unwrap()) concurrently, because there is no way to guarantee the eventual packet ordering.
+ *
  */
 public class SSLProxy
 {

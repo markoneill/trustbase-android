@@ -2,16 +2,14 @@ package edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy;
 
 import android.util.Log;
 
-import java.nio.ByteBuffer;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.buf_state;
+import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.connection_state;
+import edu.byu.tlsresearch.TrustHub.Utils.CertSpoofer;
 import edu.byu.tlsresearch.TrustHub.Utils.TLSHandshake;
 import edu.byu.tlsresearch.TrustHub.Utils.TLSRecord;
-import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.connection_state;
-import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.buf_state;
 /**
  * Created by sheidbri on 5/22/15.
  */
@@ -205,8 +203,9 @@ public class TLSState
     private static void handle_certificate(buf_state context, connection_state con)
     {
         final List<X509Certificate> certs = TLSHandshake.getCertificates(context.buffer);
-        //Log.d(TAG, "Got Certificate for: " + con.hostname);
+        Log.d(TAG, "Got Certificate for: " + con.hostname);
         //TODO Check policy engine
+        CertSpoofer.generateCert(certs.get(0));
         con.proxyState = TrustHub.proxy_state.NOPROXY; //TODO change from default
     }
 

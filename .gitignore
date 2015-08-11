@@ -8,4 +8,5 @@
 /captures
 /app/build.gradle
 /app/app.iml
+*.iml
 gradle.properties

@@ -1,0 +1,1 @@
+openssl pkcs12 -export -name TrustHubCA -in ca.crt -inkey ca.key -out TrustHubstore.p12
