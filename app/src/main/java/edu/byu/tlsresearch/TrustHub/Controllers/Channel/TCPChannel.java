@@ -34,12 +34,18 @@ public class TCPChannel implements IChannelListener
         mContext = context;
         toACK = TCPHeader.getSequenceNumber(packet);
         toSEQ = 0;
-        replaceChannel();
+        InetSocketAddress toConnect = new InetSocketAddress(mContext.getDestIP(),
+                mContext.getDestPort());
+        SocketChannel socket = SocketChannel.open();
+        VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
+        socket.connect(toConnect);
+        mChannelKey = SocketPoller.getInstance().registerChannel(socket, mContext, this);
         mState = TCBState.START;
     }
 
     public SelectionKey replaceChannel() throws IOException
     {
+        SocketPoller.getInstance().close(mChannelKey);
         //TODO close the original one
         InetSocketAddress toConnect = new InetSocketAddress(mContext.getDestIP(),
                 mContext.getDestPort());

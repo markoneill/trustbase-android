@@ -167,11 +167,16 @@ public class TrustHub
 
     public void proxyIn(byte[] packet, SelectionKey key)
     {
+        Log.d(TAG, "IN");
         Connection conn = ((TCPChannel) key.attachment()).getmContext();
         connection_state conState = getState(conn);
         byte[] reallyReceive = null;
+        Log.d(TAG, conState.recvBuffer.curState.toString());
+        Log.d(TAG, conState.proxyState.toString());
         if(conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT)
         {
+            //Log.d(TAG, "Cleared: " + conState.recvBuffer.buffer.toString());
+            //Log.d(TAG, "Need room for: " + packet.length);
             conState.recvBuffer.buffer.put(packet);
             conState.recvBuffer.buffer.flip();
             if(conState.recvBuffer.curState != TLSState.tls_state.SERVER_HELLO_DONE_SENT)
@@ -201,16 +206,21 @@ public class TrustHub
                             {
                                 Log.d(TAG, "Start proxy: " + conState.hostname);
                                 // Dump the Server responses and restart the connection
-                                conState.recvBuffer.buffer.clear();
+                                // We compact at end so just set to limit
+                                conState.recvBuffer.buffer.position(conState.recvBuffer.buffer.limit());
+                                //Log.d(TAG, "Cleared: " + conState.recvBuffer.buffer.toString());
+                                Log.d(TAG, key.toString());
                                 key = ((TCPChannel) key.attachment()).replaceChannel();
+                                Log.d(TAG, key.toString());
                                 // Start of proxying
                                 conState.startProxy(key);
                                 conState.sendBuffer.buffer.flip();
                                 byte[] clientHello = new byte[conState.sendBuffer.buffer.remaining()];
                                 conState.sendBuffer.buffer.get(clientHello);
                                 conState.sendBuffer.buffer.compact();
-                                Log.d(TAG, "Sending Client Hello");
+                               // Log.d(TAG, "Sending Client Hello");
                                 conState.myProxy.send(clientHello);
+                                conState.myProxy.receive(new byte[0]); //Kickstart the proxy
                             }
                             catch(SSLException e)
                             {
@@ -223,6 +233,21 @@ public class TrustHub
                             } catch (Exception e)
                             {
                                 Log.e(TAG, "Proxy failed: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+                        else
+                        {
+                            byte[] proxyReceive = new byte[conState.recvBuffer.buffer.remaining()];
+                            conState.recvBuffer.buffer.get(proxyReceive); // Get all the handshake data
+                            // i.e. ClientHello to proxy
+                            try
+                            {
+                                conState.myProxy.receive(proxyReceive);
+                            }
+                            catch(SSLException e)
+                            {
+                                Log.e(TAG, "Proxy Receive failed: " + e.getMessage());
                                 e.printStackTrace();
                             }
                         }

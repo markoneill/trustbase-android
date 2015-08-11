@@ -38,27 +38,27 @@ public class TLSState
                 switch (buf.curState)
                 {
                     case UNKNOWN:
-                        Log.d(TAG, "Send Unknown");
+                        //Log.d(TAG, "Send Unknown");
                         handle_state_unknown(buf);
                         break;
                     case RECORD_LAYER:
-                        Log.d(TAG, "Send Record");
+                        //Log.d(TAG, "Send Record");
                         handle_state_record_layer(buf);
                         break;
                     case HANDSHAKE_LAYER:
-                        Log.d(TAG, "Send Handshake");
+                        //Log.d(TAG, "Send Handshake");
                         handle_state_handshake_layer(buf, conState);
                         break;
                     case CLIENT_HELLO_SENT:
-                        Log.d(TAG, "Send ClientHelloSent");
+                        //Log.d(TAG, "Send ClientHelloSent");
                         handle_state_client_hello_sent(buf);
                         break;
                     case SERVER_HELLO_DONE_SENT:
-                        Log.d(TAG, "Read Server Hello Done Sent");
+                        //Log.d(TAG, "Read Server Hello Done Sent");
                         handle_state_server_hello_done_sent(buf);
                         break;
                     case IRRELEVANT:
-                        Log.d(TAG, "Send Irrelevant");
+                        //Log.d(TAG, "Send Irrelevant");
                         buf.buffer.position(buf.buffer.limit());
                         buf.toRead = 0;
                         break;
@@ -120,7 +120,7 @@ public class TLSState
     private static void handle_state_handshake_layer(buf_state context, connection_state con)
     {
         int tls_record_bytes = context.toRead;
-        Log.d(TAG, context.buffer.remaining() + " Should be bigger than: " + tls_record_bytes + " " + context.buffer);
+        //Log.d(TAG, context.buffer.remaining() + " Should be bigger than: " + tls_record_bytes + " " + context.buffer);
         int handshake_message_length;
         short type;
         while(tls_record_bytes > 0)
@@ -132,37 +132,37 @@ public class TLSState
             switch(type)
             {
                 case TLSHandshake.TYPE_CLIENT_HELLO:
-                    Log.d(TAG, "Client Hello");
+                    //Log.d(TAG, "Client Hello");
                     context.toRead = 0;
                     context.curState = tls_state.CLIENT_HELLO_SENT;
                     handle_client_hello(context, con);
                     break;
                 case TLSHandshake.TYPE_SERVER_HELLO:
-                    Log.d(TAG, "Server Hello");
+                    //Log.d(TAG, "Server Hello");
                     context.toRead = TLSRecord.RECORD_HEADER_SIZE;
                     context.curState = tls_state.RECORD_LAYER;
                     context.buffer.position(context.buffer.position() + handshake_message_length);
                     break;
                 case TLSHandshake.TYPE_CERTIFICATE:
-                    Log.d(TAG, "Cert");
+                    //Log.d(TAG, "Cert");
                     context.toRead = TLSRecord.RECORD_HEADER_SIZE;
                     context.curState = tls_state.RECORD_LAYER;
                     handle_certificate(context, con);
                     break;
                 case TLSHandshake.TYPE_SERVER_KEY_EXCHANGE:
-                    Log.d(TAG, "Server key exchange");
+                    //Log.d(TAG, "Server key exchange");
                     context.toRead = TLSRecord.RECORD_HEADER_SIZE;
                     context.curState = tls_state.RECORD_LAYER;
                     context.buffer.position(context.buffer.position() + handshake_message_length);
                     break;
                 case TLSHandshake.TYPE_SERVER_HELLO_DONE:
-                    Log.d(TAG, "Server Hello Done");
+                    //Log.d(TAG, "Server Hello Done");
                     context.toRead = 1;
                     context.curState = tls_state.SERVER_HELLO_DONE_SENT;
                     context.buffer.position(context.buffer.position() + handshake_message_length);
                     break;
                 default:
-                    Log.d(TAG, "unknown");
+                    //Log.d(TAG, "unknown");
                     context.toRead = 0;
                     context.buffer.position(context.buffer.limit());
                     context.curState = tls_state.IRRELEVANT;
@@ -203,7 +203,7 @@ public class TLSState
     private static void handle_certificate(buf_state context, connection_state con)
     {
         final List<X509Certificate> certs = TLSHandshake.getCertificates(context.buffer);
-        Log.d(TAG, "Got Certificate for: " + con.hostname);
+        //Log.d(TAG, "Got Certificate for: " + con.hostname);
         //TODO Check policy engine
         con.proxyState = TrustHub.proxy_state.PROXY; //TODO change from default
         if(con.proxyState == TrustHub.proxy_state.PROXY)

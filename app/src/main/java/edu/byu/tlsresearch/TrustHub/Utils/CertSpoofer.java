@@ -60,7 +60,7 @@ public class CertSpoofer
 
     public static KeyStore generateCert(java.security.cert.X509Certificate toCopy)
     {
-        Log.d(TAG, "Start");
+        //Log.d(TAG, "Start");
         try
         {
             X509Certificate newCert = null;
@@ -73,7 +73,6 @@ public class CertSpoofer
             }
             //Load our CA for signing
             Certificate caCert = null;
-            Log.d(TAG, mKS.toString());
             caCert = mKS.getCertificate("TrustHubCA");
             PrivateKey privKey = (PrivateKey) mKS.getKey("TrustHubCA", "password".toCharArray());
             KeyPair both = new KeyPair(caCert.getPublicKey(), privKey);

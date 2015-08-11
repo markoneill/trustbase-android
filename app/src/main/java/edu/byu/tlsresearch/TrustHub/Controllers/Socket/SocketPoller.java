@@ -66,6 +66,8 @@ public class SocketPoller implements Runnable
     public void noProxySend(SelectionKey key, byte[] toWrite)
     {
         // TODO: syncronize reads and writes to this buffer
+        Log.d(TAG, "NoProxySend");
+        Log.d(TAG, TrustHub.bytesToHex(toWrite));
         mToWrite.get(key).add(toWrite);
     }
 

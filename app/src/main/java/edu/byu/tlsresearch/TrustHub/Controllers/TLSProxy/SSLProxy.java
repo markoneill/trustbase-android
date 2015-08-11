@@ -18,10 +18,12 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.IChannelListener;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
+import edu.byu.tlsresearch.TrustHub.Controllers.Utils.TrustEveryone;
 
 /**
  * Created by sheidbr on 7/27/15.
@@ -52,11 +54,12 @@ public class SSLProxy
             KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
             kmf.init(spoofed, passphrase.toCharArray());
 
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
-            tmf.init(spoofed);
+//            TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+//            tmf.init(spoofed);
 
             sslc = SSLContext.getInstance("TLS");
-            sslc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+            TrustManager[] managers = {new TrustEveryone()};
+            sslc.init(kmf.getKeyManagers(), managers/*tmf.getTrustManagers()*/, null);
         }
     }
 
@@ -82,23 +85,23 @@ public class SSLProxy
         clientSideEngine = sslc.createSSLEngine();
         clientSideEngine.setUseClientMode(false);
         SSLSession clientSession = clientSideEngine.getSession();
-        cTos = ByteBuffer.allocate(clientSession.getApplicationBufferSize());
-        toApp = ByteBuffer.allocate(clientSession.getPacketBufferSize() + 50);
-        fromApp = ByteBuffer.allocate(clientSession.getPacketBufferSize() + 50);
+        cTos = ByteBuffer.allocate(65535);//clientSession.getApplicationBufferSize());
+        toApp = ByteBuffer.allocate(65535);//clientSession.getPacketBufferSize() + 50);
+        fromApp = ByteBuffer.allocate(65535);//clientSession.getPacketBufferSize() + 50);
         clientSideEngine.beginHandshake(); //Force the getHandshakeStatus to be correct
 
         serverSideEngine = sslc.createSSLEngine();
         serverSideEngine.setUseClientMode(true);
         SSLSession serverSession = serverSideEngine.getSession();
-        sToc = ByteBuffer.allocate(clientSession.getApplicationBufferSize());
-        toNetwork = ByteBuffer.allocate(clientSession.getPacketBufferSize() + 50);
-        fromNetwork = ByteBuffer.allocate(clientSession.getPacketBufferSize() + 50);
+        sToc = ByteBuffer.allocate(65535);//clientSession.getApplicationBufferSize());
+        toNetwork = ByteBuffer.allocate(65535);//clientSession.getPacketBufferSize() + 50);
+        fromNetwork = ByteBuffer.allocate(65535);//clientSession.getPacketBufferSize() + 50);
         serverSideEngine.beginHandshake(); //Force the getHandshakeStatus to be correct
     }
 
     public void send(byte[] toSend) throws javax.net.ssl.SSLException
     {
-        Log.d(TAG, "Send");
+        Log.d(TAG, "ClientSide Receive");
         handle(toSend, toApp, fromApp, clientSideEngine, clientResult,
                 cTos, sToc, toNetwork, serverSideEngine, serverResult);
         writeout();
@@ -106,7 +109,7 @@ public class SSLProxy
 
     public void receive(byte[] toSend) throws javax.net.ssl.SSLException
     {
-        Log.d(TAG, "Receive");
+        Log.d(TAG, "ServerSide Receive");
         handle(toSend, toNetwork, fromNetwork, serverSideEngine, serverResult,
                 sToc, cTos, toApp, clientSideEngine, clientResult);
         writeout();
@@ -118,14 +121,14 @@ public class SSLProxy
         toNetwork.flip();
         if(toApp.hasRemaining())
         {
-            Log.d(TAG, "toApp");
+            Log.d(TAG, "ClientSide Send");
             byte[] toReceive = new byte[toApp.remaining()];
             toApp.get(toReceive);
             ((IChannelListener) mKey.attachment()).receive(toReceive);
         }
         if(toNetwork.hasRemaining())
         {
-            Log.d(TAG, "toNetwork");
+            Log.d(TAG, "ServerSide Send");
             byte[] toSend = new byte[toNetwork.remaining()];
             toNetwork.get(toSend);
             SocketPoller.getInstance().noProxySend(mKey, toSend);
@@ -140,6 +143,8 @@ public class SSLProxy
                               ByteBuffer toOther, ByteBuffer fromOther, ByteBuffer otherOut,
                               SSLEngine otherEngine, SSLEngineResult otherResult) throws javax.net.ssl.SSLException
     {
+        Log.d(TAG, fromConnection.toString());
+        Log.d(TAG, toSend.length+"");
         fromConnection.put(toSend); //TODO: Check for room
         fromConnection.flip();
         if(connEngine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)

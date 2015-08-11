@@ -19,6 +19,6 @@ public class TrustEveryone implements X509TrustManager
 
     public X509Certificate[] getAcceptedIssuers()
     {
-        return null;
+        return new java.security.cert.X509Certificate[] {};
     }
 }
