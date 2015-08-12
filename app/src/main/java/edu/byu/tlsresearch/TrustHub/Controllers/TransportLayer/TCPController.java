@@ -13,7 +13,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
  * Created by sheidbri on 1/15/15.
- *
+ * <p/>
  * Handles all TCP Sockets.
  * Marshalls traffic between IPController and TCPChannel.
  * Strips and reconstructs TCPHeaders
@@ -22,7 +22,8 @@ public final class TCPController
 {
     private final static int PSUEDO_HEADER_LENGTH = 12;
     private static Map<Connection, TCPChannel> clients = new ConcurrentHashMap<Connection,
-                TCPChannel>();
+            TCPChannel>();
+
     public static void send(Connection context, byte[] transport)
     {
         try
@@ -34,8 +35,7 @@ public final class TCPController
                 clients.put(context, connectionChannel);
             }
             connectionChannel.send(transport);
-        }
-        catch (IOException e)
+        } catch (IOException e)
         {
             Log.e("TCPChannel", "failed to connect" + e.getMessage());
         }

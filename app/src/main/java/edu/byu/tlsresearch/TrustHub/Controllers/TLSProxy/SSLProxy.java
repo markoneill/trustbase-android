@@ -22,29 +22,29 @@ import edu.byu.tlsresearch.TrustHub.Controllers.Utils.TrustEveryone;
 
 /**
  * Created by sheidbr on 7/27/15.
- *
+ * <p/>
  * Concurrency Notes: There are two concurrency issues to be aware of:
- *
+ * <p/>
  * The wrap() and unwrap() methods may execute concurrently of each other.
  * The SSL/TLS protocols employ ordered packets. Applications must take care to ensure that generated packets are delivered in sequence. If packets arrive out-of-order, unexpected or fatal results may occur.
- *
+ * <p/>
  * For example:
- *
+ * <p/>
  * synchronized (outboundLock) {
  * sslEngine.wrap(src, dst);
  * outboundQueue.put(dst);
  * }
- *
+ * <p/>
  * As a corollary, two threads must not attempt to call the same method (either wrap() or unwrap()) concurrently, because there is no way to guarantee the eventual packet ordering.
- *
  */
 public class SSLProxy
 {
     private static String TAG = "SSLProxy";
     private static SSLContext sslc = null;
+
     private void setupContext(KeyStore spoofed, String passphrase) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException
     {
-        if(sslc == null)
+        if (sslc == null)
         {
             KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
             kmf.init(spoofed, passphrase.toCharArray());
@@ -114,14 +114,14 @@ public class SSLProxy
     {
         toApp.flip();
         toNetwork.flip();
-        if(toApp.hasRemaining())
+        if (toApp.hasRemaining())
         {
             //Log.d(TAG, "ClientSide Send");
             byte[] toReceive = new byte[toApp.remaining()];
             toApp.get(toReceive);
             ((IChannelListener) mKey.attachment()).receive(toReceive);
         }
-        if(toNetwork.hasRemaining())
+        if (toNetwork.hasRemaining())
         {
             //Log.d(TAG, "ServerSide Send");
             byte[] toSend = new byte[toNetwork.remaining()];
@@ -142,20 +142,19 @@ public class SSLProxy
         //Log.d(TAG, toSend.length+"");
         fromConnection.put(toSend); //TODO: Check for room
         fromConnection.flip();
-        if(connEngine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
+        if (connEngine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
         {
             connEngine.unwrap(fromConnection, toOther); //TODO: check overflow/underflow
             toOther.flip();
-            if(otherEngine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
+            if (otherEngine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
             {
-                while(toOther.hasRemaining())
+                while (toOther.hasRemaining())
                 {
                     otherEngine.wrap(toOther, otherOut);
                 }
             }
             toOther.compact();
-        }
-        else
+        } else
         {
             do
             {
@@ -166,7 +165,7 @@ public class SSLProxy
                         runDelegatedTasks(connResult, connEngine);
                         break;
                     case NEED_WRAP:
-                        while(connEngine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP)
+                        while (connEngine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP)
                         {
                             connResult = connEngine.wrap(fromConnection, toConnection);
                             runDelegatedTasks(connResult, connEngine);
@@ -174,14 +173,14 @@ public class SSLProxy
                         break;
                 }
             } while (connResult.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.FINISHED
-                      && (connResult.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NEED_UNWRAP
-                            || fromConnection.hasRemaining()));
+                    && (connResult.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NEED_UNWRAP
+                    || fromConnection.hasRemaining()));
 
             //If handshake just finised write out anything in buffer already
-            if(connResult.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED)
+            if (connResult.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED)
             {
                 fromOther.flip();
-                while(fromOther.hasRemaining())
+                while (fromOther.hasRemaining())
                 {
                     connEngine.wrap(fromOther, toConnection);
                 }

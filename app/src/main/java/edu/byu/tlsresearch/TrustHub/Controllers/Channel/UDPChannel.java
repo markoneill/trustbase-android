@@ -14,7 +14,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
  * Created by sheidbri on 1/15/15.
- *
+ * <p/>
  * Manages a single UDP Socket
  * Marshalls traffic between UDPController and SocketPoller.
  */
@@ -23,6 +23,7 @@ public class UDPChannel implements IChannelListener
     private SelectionKey mChannelKey;
     private Connection mContext;
     private long mUsedRecently = System.currentTimeMillis();
+
     public UDPChannel(Connection context, byte[] packet)
     {
         setmContext(context);
@@ -34,12 +35,12 @@ public class UDPChannel implements IChannelListener
             socket.socket().bind(null);
             VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
             setmChannelKey(SocketPoller.getInstance().registerChannel(socket, context, this));
-        }
-        catch(IOException e)
+        } catch (IOException e)
         {
             // TODO: tell the app it can't connect
         }
     }
+
     public void send(Connection context, byte[] packet)
     {
         this.setSend(context.getDestIP(), context.getDestPort());
@@ -84,15 +85,18 @@ public class UDPChannel implements IChannelListener
         mUsedRecently = set;
     }
 
-    public SelectionKey getmChannelKey() {
+    public SelectionKey getmChannelKey()
+    {
         return mChannelKey;
     }
 
-    public void setmChannelKey(SelectionKey mChannelKey) {
+    public void setmChannelKey(SelectionKey mChannelKey)
+    {
         this.mChannelKey = mChannelKey;
     }
 
-    public Connection getmContext() {
+    public Connection getmContext()
+    {
         return mContext;
     }
 
@@ -101,7 +105,8 @@ public class UDPChannel implements IChannelListener
         mContext = new Connection(newIP, newPort, mContext.getClientIP(), mContext.getClientPort());
     }
 
-    public void setmContext(Connection mContext) {
+    public void setmContext(Connection mContext)
+    {
         this.mContext = mContext;
     }
 }

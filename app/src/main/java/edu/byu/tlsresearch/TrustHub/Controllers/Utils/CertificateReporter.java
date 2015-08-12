@@ -30,7 +30,9 @@ class CertificateReporter
 {
     private int mPort;
     private String mHostname;
-    public CertificateReporter(String hostname, int port) {
+
+    public CertificateReporter(String hostname, int port)
+    {
         mHostname = hostname;
         mPort = port;
     }
@@ -38,12 +40,13 @@ class CertificateReporter
     public boolean reportCertificate(String hostname, String local, String country, List<X509Certificate> certChain)
     {
         boolean reportSent = false;
-        try {
+        try
+        {
 
             // Init SSL
             SSLContext sslcontext = SSLContext.getInstance("SSL");
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            char[] pass = {'p','a','s','s'};
+            char[] pass = {'p', 'a', 's', 's'};
             kmf.init(null, pass);
             sslcontext.init(kmf.getKeyManagers(),
                     new TrustManager[]{new TrustEveryone()},
@@ -75,15 +78,20 @@ class CertificateReporter
             out.flush();
             reportSent = true;
             reportingSocket.close();
-        } catch (IOException e) {
+        } catch (IOException e)
+        {
             Log.d("TrustHub", " IO Exception: " + e.getMessage());
-        } catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e)
+        {
             Log.d("TrustHub", " NoSuchAlgorithmException Exception: " + e.getMessage());
-        } catch (KeyManagementException e) {
+        } catch (KeyManagementException e)
+        {
             Log.d("TrustHub", " KeyManagementException Exception: " + e.getMessage());
-        } catch (UnrecoverableKeyException e) {
+        } catch (UnrecoverableKeyException e)
+        {
             Log.d("TrustHub", " UnrecoverableKeyException Exception: " + e.getMessage());
-        } catch (KeyStoreException e) {
+        } catch (KeyStoreException e)
+        {
             Log.d("TrustHub", " KeyStoreException Exception: " + e.getMessage());
         }
         return reportSent;
@@ -95,7 +103,8 @@ class CertificateReporter
         reportBody.append("certificate=");
 
         // Format to OpenSSL-compatible URL encoded certificate chain
-        for (int i = 0; i < certChain.size(); i++) {
+        for (int i = 0; i < certChain.size(); i++)
+        {
             reportBody.append("-----BEGIN CERTIFICATE-----\n");
             reportBody.append(encodeCertificate(certChain.get(i)));
             reportBody.append("-----END CERTIFICATE-----\n");
@@ -121,8 +130,7 @@ class CertificateReporter
         try
         {
             output = URLEncoder.encode(Base64.encodeToString(cert.getEncoded(), Base64.DEFAULT), "UTF-8");
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             Log.d("TrustHub", "Failed to encode certificate: " + e.getMessage());
         }

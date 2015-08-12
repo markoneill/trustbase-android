@@ -6,7 +6,10 @@ package edu.byu.tlsresearch.TrustHub.Controllers.Channel;
 public interface IChannel
 {
     void receive(byte[] packet);
+
     void readFinish();
+
     void close();
+
     void writeFinish();
 }

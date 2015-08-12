@@ -53,7 +53,7 @@ public class Communicator
         return toListeners(payload, callType.RECEIVE, context);
     }
 
-    private byte[] toListeners (byte[] payload, callType t, Connection context)
+    private byte[] toListeners(byte[] payload, callType t, Connection context)
     {
         ExecutorService executor = Executors.newCachedThreadPool();
         final Iterator iterator = Listeners.iterator();
@@ -90,6 +90,7 @@ public class Communicator
         private TCPInterface mListener;
         private callType mType;
         private Connection mContext;
+
         public myTask(TCPInterface l, byte[] payload, callType t, Connection context)
         {
             mListener = l;
@@ -97,6 +98,7 @@ public class Communicator
             mType = t;
             mContext = context;
         }
+
         @Override
         public byte[] call() throws Exception
         {

@@ -15,7 +15,7 @@ import java.util.ArrayList;
  */
 public class TLSHandshake
 {
-    public final static byte TYPE_HELLO_REQUEST	= 0;
+    public final static byte TYPE_HELLO_REQUEST = 0;
     public final static byte TYPE_CLIENT_HELLO = 1;
     public final static byte TYPE_SERVER_HELLO = 2;
     public final static byte TYPE_CERTIFICATE = 11;
@@ -139,7 +139,7 @@ public class TLSHandshake
                 //Log.d("TLSHandshake", buffer.toString());
                 certLength = (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
                 //Log.d("TLSHandshake", buffer.toString());
-                byte[] cert_bytes =  new byte[certLength];
+                byte[] cert_bytes = new byte[certLength];
                 //Log.d("TLSHandshake", "certLength: " + certLength);
                 //Log.d("TLSHandshake", "buffer: " + buffer.toString());
                 buffer.get(cert_bytes);

@@ -8,5 +8,6 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 public interface TCPInterface
 {
     byte[] received(byte[] packet, Connection context);
+
     byte[] sending(byte[] packet, Connection context);
 }

@@ -18,7 +18,7 @@ public enum TCBState implements ITCBState
                     int flags = TCPHeader.getFlags(transport);
                     if (flags == TCPHeader.SYN)
                     {
-                        context.setSEQ((long)Math.random());
+                        context.setSEQ((long) Math.random());
                         context.setACK(TCPHeader.getSequenceNumber(transport) + 1);
                         context.receive(new byte[0], TCPHeader.ACK | TCPHeader.SYN);
                         context.setSEQ(context.getSEQ() + 1);
@@ -96,11 +96,11 @@ public enum TCBState implements ITCBState
                 public void send(TCPChannel context, byte[] transport)
                 {
                     int flags = TCPHeader.getFlags(transport);
-                    if((flags & TCPHeader.ACK) != 0)
+                    if ((flags & TCPHeader.ACK) != 0)
                     {
                         Establish_ACK_handler(context, transport);
                     }
-                    if((flags & TCPHeader.FIN) != 0)
+                    if ((flags & TCPHeader.FIN) != 0)
                     {
                         context.setACK(context.getACK() + 1);
                         context.receive(new byte[0], TCPHeader.ACK);
@@ -114,6 +114,7 @@ public enum TCBState implements ITCBState
     {
         Log.d("TCPSTate", "flags: " + TCPHeader.getFlags(transport) + " state: " + context.getmState());
     }
+
     public void Establish_ACK_handler(TCPChannel context, byte[] transport)
     {
         if (TCPHeader.getSequenceNumber(transport) < context.getACK())

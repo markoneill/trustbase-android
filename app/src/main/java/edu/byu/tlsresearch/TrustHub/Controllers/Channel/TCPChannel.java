@@ -14,7 +14,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
  * Created by sheidbri on 1/15/15.
- *
+ * <p/>
  * Manages a TCP Socket (mChannelKey) keeping track of SEQ and ACK numbers states of connections.
  * Marshalls traffic between the TCPController and the SocketPoller.
  * Also, communicates with Communicator to edit payloads.
@@ -64,7 +64,7 @@ public class TCPChannel implements IChannelListener
 
     public void receive(byte[] payload, int flags)
     {
-        if(payload == null) // Listeners in communicator can do NULL then nothing will be sent back
+        if (payload == null) // Listeners in communicator can do NULL then nothing will be sent back
             return;
         synchronized (this) //SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
         {

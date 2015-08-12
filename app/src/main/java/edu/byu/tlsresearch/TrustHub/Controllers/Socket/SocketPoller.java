@@ -110,7 +110,8 @@ public class SocketPoller implements Runnable
     public boolean close(SelectionKey key)
     {
         Log.d(TAG, "Closed");
-        if (key.isValid()) {
+        if (key.isValid())
+        {
             key.interestOps(0);
             key.cancel();
         }
@@ -149,7 +150,7 @@ public class SocketPoller implements Runnable
                     {
                         SelectionKey key = keyIterator.next();
                         // READ FROM SOCKET
-                        if(!key.isValid())
+                        if (!key.isValid())
                             continue;
                         if (key.isReadable())
                         {
@@ -159,14 +160,13 @@ public class SocketPoller implements Runnable
                                 if (key.channel() instanceof SocketChannel)
                                 {
                                     length = ((SocketChannel) key.channel()).read(packet);
-                                }
-                                else if (key.channel() instanceof DatagramChannel)
+                                } else if (key.channel() instanceof DatagramChannel)
                                 {
 
-                                    InetSocketAddress from =(InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
+                                    InetSocketAddress from = (InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
                                     ((UDPChannel) key.attachment()).setSend(from.getAddress().toString().replace("/", ""), from.getPort());
                                     length = packet.position();
-                                    Log.d("UDP","Received: " + length);
+                                    Log.d("UDP", "Received: " + length);
                                 }
                                 if (length > 0)
                                 {
@@ -181,8 +181,7 @@ public class SocketPoller implements Runnable
                             } catch (ClosedChannelException e)
                             {
                                 ((IChannelListener) key.attachment()).close();
-                            }
-                            catch (SocketException e)
+                            } catch (SocketException e)
                             {
                                 ((IChannelListener) key.attachment()).close();
                             }
@@ -235,8 +234,7 @@ public class SocketPoller implements Runnable
                             attachment.getmContext().getDestPort());
                     totalWrote = ((DatagramChannel) key.channel()).send(writer, toSend);
                     ((UDPChannel) key.attachment()).setRecentlyUsed(System.currentTimeMillis());
-                }
-                catch(IOException e)
+                } catch (IOException e)
                 {
                     //continue;
                 }
@@ -248,7 +246,7 @@ public class SocketPoller implements Runnable
             {
                 Log.d(TAG, "Not full write: " + totalWrote);
                 mToWrite.get(key).set(0, Arrays.copyOfRange(mToWrite.get(key).get(0), totalWrote, toWrite.length));
-               // key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+                // key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
                 //break; // Wasn't able to receive anymore so break out //TODO: if switched back uncomment this
             }
         }

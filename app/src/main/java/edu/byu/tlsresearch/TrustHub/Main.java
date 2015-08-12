@@ -16,6 +16,7 @@ import edu.byu.tlsresearch.TrustHub.Utils.CertSpoofer;
 public class Main extends AppCompatActivity implements View.OnClickListener
 {
     VPNServiceHandler service = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -63,6 +64,7 @@ public class Main extends AppCompatActivity implements View.OnClickListener
             onActivityResult(0, Activity.RESULT_OK, null);
         }
     }
+
     @Override
     protected void onActivityResult(int request, int result, Intent data)
     {

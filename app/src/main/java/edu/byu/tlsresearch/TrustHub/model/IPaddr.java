@@ -17,6 +17,7 @@ public class IPaddr
         fourthOct = fourth;
         mask = 0;
     }
+
     public IPaddr()
     {
 
@@ -50,7 +51,7 @@ public class IPaddr
     public void setAddress(String toParse)
     {
         String[] octs = toParse.split("\\.");
-        if(octs.length == 4)
+        if (octs.length == 4)
         {
             firstOct = Short.parseShort(octs[0]);
             secondOct = Short.parseShort(octs[1]);

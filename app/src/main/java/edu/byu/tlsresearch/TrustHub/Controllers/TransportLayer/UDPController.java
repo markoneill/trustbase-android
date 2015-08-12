@@ -15,7 +15,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
  * Created by sheidbri on 1/15/15.
- *
+ * <p/>
  * Manages all UDP connections.
  * Marshalls traffic between IPController and UDPChannel.
  * Handles stripping and Reconstructing the Headers
@@ -23,11 +23,12 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 public final class UDPController
 {
     private static Map<Integer, UDPChannel> clients = new ConcurrentHashMap<Integer,
-                UDPChannel>();
+            UDPChannel>();
+
     public static void send(Connection context, byte[] packet)
     {
         UDPChannel connectionState = clients.get(context.getClientPort());
-        if(connectionState == null)
+        if (connectionState == null)
         {
             connectionState = new UDPChannel(context, packet);
             clients.put(context.getClientPort(), connectionState);
@@ -83,9 +84,9 @@ public final class UDPController
                     //Log.d("UDPChannel", "removed");
                 }
             }
-        }
-        catch (Exception e) {
-            Log.d("UDPChannel", "mark and sweep died "  + e.getMessage());
+        } catch (Exception e)
+        {
+            Log.d("UDPChannel", "mark and sweep died " + e.getMessage());
         }
 
     }

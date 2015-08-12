@@ -10,15 +10,17 @@ import javax.net.ssl.X509TrustManager;
 public class TrustEveryone implements X509TrustManager
 {
     public void checkClientTrusted(X509Certificate[] chain,
-                                   String authenticationType) {
+                                   String authenticationType)
+    {
     }
 
     public void checkServerTrusted(X509Certificate[] chain,
-                                   String authenticationType) {
+                                   String authenticationType)
+    {
     }
 
     public X509Certificate[] getAcceptedIssuers()
     {
-        return new java.security.cert.X509Certificate[] {};
+        return new java.security.cert.X509Certificate[]{};
     }
 }

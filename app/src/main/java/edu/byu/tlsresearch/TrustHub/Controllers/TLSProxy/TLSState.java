@@ -10,6 +10,7 @@ import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.connection_sta
 import edu.byu.tlsresearch.TrustHub.Utils.CertSpoofer;
 import edu.byu.tlsresearch.TrustHub.Utils.TLSHandshake;
 import edu.byu.tlsresearch.TrustHub.Utils.TLSRecord;
+
 /**
  * Created by sheidbri on 5/22/15.
  */
@@ -63,10 +64,9 @@ public class TLSState
                         break;
                 }
             }
-        }
-        catch(Exception e)
+        } catch (Exception e)
         {
-            if(buf != null)
+            if (buf != null)
             {
                 buf.curState = tls_state.IRRELEVANT;
             }
@@ -84,12 +84,11 @@ public class TLSState
     private static void handle_state_unknown(buf_state buf)
     {
         buf.buffer.mark();
-        if(TLSRecord.getContentType(buf.buffer) == TLSRecord.HANDSHAKE)
+        if (TLSRecord.getContentType(buf.buffer) == TLSRecord.HANDSHAKE)
         {
             buf.curState = tls_state.RECORD_LAYER;
             buf.toRead = TLSRecord.RECORD_HEADER_SIZE;
-        }
-        else
+        } else
         {
             buf.curState = tls_state.IRRELEVANT;
             buf.toRead = 0;
@@ -123,13 +122,13 @@ public class TLSState
         //Log.d(TAG, context.buffer.remaining() + " Should be bigger than: " + tls_record_bytes + " " + context.buffer);
         int handshake_message_length;
         short type;
-        while(tls_record_bytes > 0)
+        while (tls_record_bytes > 0)
         {
 
             type = TLSHandshake.getHandshakeMessageType(context.buffer);
             handshake_message_length = TLSHandshake.getHandshakeDataLength(context.buffer);
             tls_record_bytes -= handshake_message_length + TLSHandshake.HANDSHAKE_HEADER_SIZE;
-            switch(type)
+            switch (type)
             {
                 case TLSHandshake.TYPE_CLIENT_HELLO:
                     //Log.d(TAG, "Client Hello");
@@ -183,7 +182,7 @@ public class TLSState
         TLSHandshake.getCipherSuites(context.buffer, cipher_length);
         short compression_length = TLSHandshake.getClientHelloCompressionMethodsLength(context.buffer);
         TLSHandshake.getClientHelloCompressionMethods(context.buffer, compression_length);
-        if(context.buffer.hasRemaining())
+        if (context.buffer.hasRemaining())
         {
             int extensions_length = TLSHandshake.getClientHelloExtensionsLength(context.buffer);
             while (extensions_length > 0)
@@ -206,7 +205,7 @@ public class TLSState
         //Log.d(TAG, "Got Certificate for: " + con.hostname);
         //TODO Check policy engine
         con.proxyState = TrustHub.proxy_state.PROXY; //TODO change from default
-        if(con.proxyState == TrustHub.proxy_state.PROXY)
+        if (con.proxyState == TrustHub.proxy_state.PROXY)
         {
             con.spoofedStore = CertSpoofer.generateCert(certs.get(0));
         }

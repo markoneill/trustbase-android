@@ -94,8 +94,7 @@ public class CertSpoofer
             Certificate[] chain = {newCert, caCert};
             newKS.setKeyEntry("ForgedCert", mNewCertPair.getPrivate(), "password".toCharArray(), chain);
             return newKS;
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             String TAG = "CertSpoofer";
             Log.d(TAG, e.getMessage());

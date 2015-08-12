@@ -12,7 +12,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
  * Created by sheidbri on 1/15/15.
- *
+ * <p/>
  * Used to strip and reconstruct IPHeaders.
  * Marshalls traffic between VPNServiceHandler and TCP/UDP Controllers
  */

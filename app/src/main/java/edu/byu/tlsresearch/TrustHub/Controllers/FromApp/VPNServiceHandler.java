@@ -179,7 +179,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
         // builder.addDnsServer("8.8.8.8"); // TODO get current DNS Servers?
 
         // API 21
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
         {
             builder.allowFamily(10); //Should be == AF_INET6 allowing ipv6 to bypass this
             builder.setBlocking(true);

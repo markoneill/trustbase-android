@@ -6,113 +6,114 @@ public final class IPHeader
 {
     public final static int NUM_BYTES_IN_WORD = 4;
     public final static int IP_HEADER_LENGTH = 20;
-  	private IPHeader()
-	{
-	}
+
+    private IPHeader()
+    {
+    }
 
     public static boolean isIPPacket(byte[] packet)
     {
         return packet.length >= (packet[0] & 0x0F) * 4;
     }
 
-	public static int getVersion(byte[] packet)
-	{
-		return packet[0] >> 4;
-	}
+    public static int getVersion(byte[] packet)
+    {
+        return packet[0] >> 4;
+    }
 
-	public static int getHeaderLength(byte[] packet)
-	{
-		/**
-		 * The second field (4 bits) is the Internet Header Length (IHL), which
-		 * is the number of 32-bit words in the header. Since an IPv4 header may
-		 * contain a variable number of options, this field specifies the size
-		 * of the header (this also coincides with the offset to the data). The
-		 * minimum value for this field is 5 (RFC 791), which is a length of
-		 * 5×32 = 160 bits = 20 bytes. Being a 4-bit value, the maximum length
-		 * is 15 words (15×32 bits) or 480 bits = 60 bytes.
-		 */
-		return (packet[0] & 0x0F);
-	}
+    public static int getHeaderLength(byte[] packet)
+    {
+        /**
+         * The second field (4 bits) is the Internet Header Length (IHL), which
+         * is the number of 32-bit words in the header. Since an IPv4 header may
+         * contain a variable number of options, this field specifies the size
+         * of the header (this also coincides with the offset to the data). The
+         * minimum value for this field is 5 (RFC 791), which is a length of
+         * 5×32 = 160 bits = 20 bytes. Being a 4-bit value, the maximum length
+         * is 15 words (15×32 bits) or 480 bits = 60 bytes.
+         */
+        return (packet[0] & 0x0F);
+    }
 
-	public static int getDscp(byte[] packet)
-	{
-		return packet[1] >> 2;
-	}
+    public static int getDscp(byte[] packet)
+    {
+        return packet[1] >> 2;
+    }
 
-	public static int getEcn(byte[] packet)
-	{
-		return packet[1] & 0x03;
-	}
+    public static int getEcn(byte[] packet)
+    {
+        return packet[1] & 0x03;
+    }
 
-	public static int getTotalLength(byte[] packet)
-	{
-		return (((packet[2] & 0xFF) << 8) | (packet[3] & 0xFF)) & 0xFFFF;
-	}
+    public static int getTotalLength(byte[] packet)
+    {
+        return (((packet[2] & 0xFF) << 8) | (packet[3] & 0xFF)) & 0xFFFF;
+    }
 
-	public static int getIdentification(byte[] packet)
-	{
-		return (((packet[4] & 0xFF) << 8) | (packet[5] & 0xFF)) & 0xFFFF;
-	}
+    public static int getIdentification(byte[] packet)
+    {
+        return (((packet[4] & 0xFF) << 8) | (packet[5] & 0xFF)) & 0xFFFF;
+    }
 
-	public static int getFlags(byte[] packet)
-	{
-		return (packet[6] & 0xE0);
-	}
+    public static int getFlags(byte[] packet)
+    {
+        return (packet[6] & 0xE0);
+    }
 
-	public static int getFragmentOffset(byte[] packet)
-	{
-		return ((packet[6] & 0x1F) << 8) | (packet[7] & 0xFF) & 0xFFFF;
-	}
+    public static int getFragmentOffset(byte[] packet)
+    {
+        return ((packet[6] & 0x1F) << 8) | (packet[7] & 0xFF) & 0xFFFF;
+    }
 
-	public static int getTtl(byte[] packet)
-	{
-		return (packet[8] & 0xFF);
-	}
+    public static int getTtl(byte[] packet)
+    {
+        return (packet[8] & 0xFF);
+    }
 
-	public static int getProtocol(byte[] packet)
-	{
-		return (packet[9] & 0xFF);
-	}
+    public static int getProtocol(byte[] packet)
+    {
+        return (packet[9] & 0xFF);
+    }
 
-	public static byte[] getHeaderCheckSum(byte[] packet)
-	{
-		byte[] toReturn = new byte[2];
-		toReturn[0] = packet[10];
-		toReturn[1] = packet[11];
-		return toReturn;
-	}
-	
-	public static byte[] setHeaderCheckSum(byte[] packet, byte[] toSet)
-	{
-		packet[10] = toSet[0];
-		packet[11] = toSet[1];
+    public static byte[] getHeaderCheckSum(byte[] packet)
+    {
+        byte[] toReturn = new byte[2];
+        toReturn[0] = packet[10];
+        toReturn[1] = packet[11];
+        return toReturn;
+    }
+
+    public static byte[] setHeaderCheckSum(byte[] packet, byte[] toSet)
+    {
+        packet[10] = toSet[0];
+        packet[11] = toSet[1];
         return packet;
-	}
+    }
 
-	public static String getSourceIP(byte[] packet)
-	{
-		return (packet[12] & 0xFF) + "." + (packet[13] & 0xFF) + "."
-				+ (packet[14] & 0xFF) + "." + (packet[15] & 0xFF);
-	}
+    public static String getSourceIP(byte[] packet)
+    {
+        return (packet[12] & 0xFF) + "." + (packet[13] & 0xFF) + "."
+                + (packet[14] & 0xFF) + "." + (packet[15] & 0xFF);
+    }
 
-	public static String getDestinationIP(byte[] packet)
-	{
-		return (packet[16] & 0xFF) + "." + (packet[17] & 0xFF) + "."
-				+ (packet[18] & 0xFF) + "." + (packet[19] & 0xFF);
-	}
+    public static String getDestinationIP(byte[] packet)
+    {
+        return (packet[16] & 0xFF) + "." + (packet[17] & 0xFF) + "."
+                + (packet[18] & 0xFF) + "." + (packet[19] & 0xFF);
+    }
 
-	public static String getOption(byte[] packet)
-	{
-		String options = "";
-		if (getHeaderLength(packet) > 5)
-		{
-			for (int i = 20; i < getHeaderLength(packet) * 4; i++)
-			{
-				options += packet[i];
-			}
-		}
-		return options;
-	}
+    public static String getOption(byte[] packet)
+    {
+        String options = "";
+        if (getHeaderLength(packet) > 5)
+        {
+            for (int i = 20; i < getHeaderLength(packet) * 4; i++)
+            {
+                options += packet[i];
+            }
+        }
+        return options;
+    }
 
     public static byte[] getPayload(byte[] packet)
     {
