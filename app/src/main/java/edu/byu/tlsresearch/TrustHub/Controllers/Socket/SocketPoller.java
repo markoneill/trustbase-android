@@ -68,7 +68,11 @@ public class SocketPoller implements Runnable
         // TODO: syncronize reads and writes to this buffer
         //Log.d(TAG, "NoProxySend");
         //Log.d(TAG, TrustHub.bytesToHex(toWrite));
-        mToWrite.get(key).add(toWrite);
+        synchronized (this)
+        {
+            mToWrite.get(key).add(toWrite);
+            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+        }
     }
 
     private void proxyRead(SelectionKey key, ByteBuffer packet, int length)
@@ -166,7 +170,7 @@ public class SocketPoller implements Runnable
                                     InetSocketAddress from = (InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
                                     ((UDPChannel) key.attachment()).setSend(from.getAddress().toString().replace("/", ""), from.getPort());
                                     length = packet.position();
-                                    Log.d("UDP", "Received: " + length);
+                                    //Log.d("UDP", "Received: " + length);
                                 }
                                 if (length > 0)
                                 {
@@ -248,6 +252,15 @@ public class SocketPoller implements Runnable
                 mToWrite.get(key).set(0, Arrays.copyOfRange(mToWrite.get(key).get(0), totalWrote, toWrite.length));
                 // key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
                 //break; // Wasn't able to receive anymore so break out //TODO: if switched back uncomment this
+            }
+        }
+        else
+        {
+            synchronized (this)
+            {
+                //Dont want something to have been added when we got here
+                if(mToWrite.get(key).isEmpty())
+                    key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
             }
         }
     }
