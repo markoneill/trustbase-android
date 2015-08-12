@@ -38,7 +38,7 @@ public class TLSHandshake
 
     public static int getHandshakeDataLength(ByteBuffer buffer)
     {
-        return (int) (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
+        return (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
     }
 
     public static byte getClientHelloMajorVersion(ByteBuffer buffer)
@@ -72,7 +72,7 @@ public class TLSHandshake
 
     public static int getCipherSuiteLength(ByteBuffer buffer)
     {
-        return (int) (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
+        return (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
     }
 
     public static byte[] getCipherSuites(ByteBuffer buffer, int cipher_length)
@@ -96,26 +96,26 @@ public class TLSHandshake
 
     public static int getClientHelloExtensionsLength(ByteBuffer buffer)
     {
-        return (int) (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
+        return (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
     }
 
     public static int getExtensionType(ByteBuffer buffer)
     {
-        return (int) (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
+        return (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
     }
 
     public static int getExtensionLength(ByteBuffer buffer)
     {
-        return (int) (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
+        return (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
     }
 
 
     public static String getClientHelloServerName(ByteBuffer buffer)
     {
         String hostname;
-        int NameListLength = (int) ((((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF);
+        int NameListLength = (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
         short NameType = (short) (buffer.get() & 0xFF);
-        int NameLength = (int) ((((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF);
+        int NameLength = (((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFF;
         byte[] hostname_bytes = new byte[NameLength];
         buffer.get(hostname_bytes);
         hostname = new String(hostname_bytes);
@@ -126,7 +126,7 @@ public class TLSHandshake
     {
         try
         {
-            int certsLength = (int) (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
+            int certsLength = (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
             //Log.d("TLSHandshake", "certsLength: " + certsLength);
             //Log.d("TLSHandshake", "buffer: " + buffer.toString());
             int certLength = 0;
@@ -137,7 +137,7 @@ public class TLSHandshake
             {
                 //Log.d("TLSHandshake", "getLength");
                 //Log.d("TLSHandshake", buffer.toString());
-                certLength = (int) (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
+                certLength = (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
                 //Log.d("TLSHandshake", buffer.toString());
                 byte[] cert_bytes =  new byte[certLength];
                 //Log.d("TLSHandshake", "certLength: " + certLength);

@@ -67,14 +67,11 @@ public class Communicator
                 payload = future.get(timeout, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e)
             {
-                continue;
             } catch (ExecutionException e)
             {
-                continue;
             } catch (TimeoutException e)
             {
                 Log.d("Communicator", "timeout");
-                continue;
             }
         }
         executor.shutdown();
@@ -83,7 +80,7 @@ public class Communicator
 
     private enum callType
     {
-        SEND, RECEIVE;
+        SEND, RECEIVE
     }
 
 

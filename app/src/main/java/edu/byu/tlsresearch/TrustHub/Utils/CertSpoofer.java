@@ -9,7 +9,6 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
@@ -25,10 +24,8 @@ import iaik.x509.X509Certificate;
  */
 public class CertSpoofer
 {
-    public static KeyStore mKS;
+    private static KeyStore mKS;
     private static KeyPair mNewCertPair;
-
-    private static String TAG = "CertSpoofer";
 
     public static X509Certificate generate()
     {
@@ -63,7 +60,7 @@ public class CertSpoofer
         //Log.d(TAG, "Start");
         try
         {
-            X509Certificate newCert = null;
+            X509Certificate newCert;
             //Create a KeyPair for the new certificate
             if (mNewCertPair == null)
             {
@@ -72,17 +69,9 @@ public class CertSpoofer
                 mNewCertPair = keyGen.generateKeyPair();
             }
             //Load our CA for signing
-            Certificate caCert = null;
+            Certificate caCert;
             caCert = mKS.getCertificate("TrustHubCA");
             PrivateKey privKey = (PrivateKey) mKS.getKey("TrustHubCA", "password".toCharArray());
-            KeyPair both = new KeyPair(caCert.getPublicKey(), privKey);
-            try
-            {
-                newCert = new X509Certificate(toCopy.getEncoded());
-            } catch (CertificateException e)
-            {
-                e.printStackTrace();
-            }
 
             newCert = new X509Certificate(toCopy.getEncoded());
             newCert.setPublicKey(mNewCertPair.getPublic());
@@ -108,6 +97,7 @@ public class CertSpoofer
         }
         catch (Exception e)
         {
+            String TAG = "CertSpoofer";
             Log.d(TAG, e.getMessage());
             e.printStackTrace();
             return null;

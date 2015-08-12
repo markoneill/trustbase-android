@@ -56,10 +56,7 @@ public final class UDPController
         // Checksum is optional....Hopefully
         UDPPacket[6] = 0;
         UDPPacket[7] = 0;
-        for(int i = 0; i < payload.length; i++)
-        {
-            UDPPacket[i + UDPHeader.UDP_HEADER_LENGTH_BYTES] = payload[i];
-        }
+        System.arraycopy(payload, 0, UDPPacket, 8, payload.length);
         IPController.receive(context.getmContext(), UDPPacket, (byte) 0x11);
     }
 

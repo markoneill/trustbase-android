@@ -37,7 +37,6 @@ public class VPNServiceHandler extends VpnService implements Runnable
     private Thread mPollerThread;
     private ParcelFileDescriptor mInterface;
     private FileOutputStream mAppOut;
-    private FileInputStream mAppIn;
 
     private static VPNServiceHandler mInstance = null;
     public static String TAG = "VPNServiceHandler";
@@ -66,10 +65,6 @@ public class VPNServiceHandler extends VpnService implements Runnable
         // Start a new session
         mInterfaceThread = new Thread(this, TAG);
         mPollerThread = new Thread(SocketPoller.getInstance(), TAG);
-        if (mPollerThread == null)
-        {
-            //TODO: do something here
-        }
         VPNServiceHandler.setVPNService(this);
         mInterfaceThread.start();
         mPollerThread.start();
@@ -138,7 +133,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
             Log.e(TAG, "App not prepared?");
             return; //TODO: re-prepare the app?
         }
-        mAppIn = new FileInputStream(mInterface.getFileDescriptor());
+        FileInputStream mAppIn = new FileInputStream(mInterface.getFileDescriptor());
         mAppOut = new FileOutputStream(mInterface.getFileDescriptor());
 
         ByteBuffer packet = ByteBuffer.allocate(32767);

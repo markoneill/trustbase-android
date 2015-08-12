@@ -167,7 +167,7 @@ public class TrustHub
 
     public void proxyIn(byte[] packet, SelectionKey key)
     {
-        Log.d(TAG, "IN");
+        //Log.d(TAG, "IN");
         Connection conn = ((TCPChannel) key.attachment()).getmContext();
         connection_state conState = getState(conn);
         byte[] reallyReceive = null;
@@ -204,7 +204,7 @@ public class TrustHub
                         {
                             try
                             {
-                                Log.d(TAG, "Start proxy: " + conState.hostname);
+                                //Log.d(TAG, "Start proxy: " + conState.hostname);
                                 // Dump the Server responses and restart the connection
                                 // We compact at end so just set to limit
                                 conState.recvBuffer.buffer.position(conState.recvBuffer.buffer.limit());

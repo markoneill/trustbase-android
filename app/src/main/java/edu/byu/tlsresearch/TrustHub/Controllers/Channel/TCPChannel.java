@@ -78,7 +78,7 @@ public class TCPChannel implements IChannelListener
     @Override
     public void readFinish()
     {
-        synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
+        synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly increment it
         {
             TCPController.receive(new byte[0], this, TCPHeader.FIN); //TODO timeout to close the connection
             this.toSEQ += 1;

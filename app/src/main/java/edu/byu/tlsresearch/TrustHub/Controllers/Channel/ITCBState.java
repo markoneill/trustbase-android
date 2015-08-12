@@ -9,5 +9,5 @@ public interface ITCBState
      * @param context
      * @param transport byte[] with TCPHeaders being the start 20+ bytes
      */
-    public void send(TCPChannel context, byte[] transport);
+    void send(TCPChannel context, byte[] transport);
 }

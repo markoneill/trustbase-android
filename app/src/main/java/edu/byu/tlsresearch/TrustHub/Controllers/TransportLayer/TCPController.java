@@ -79,10 +79,7 @@ public final class TCPController
         TCPPacket[18] = 0;
         TCPPacket[19] = 0;
 
-        for(int i = 0; i < payload.length; i++)
-        {
-            TCPPacket[i + 20] = payload[i];
-        }
+        System.arraycopy(payload, 0, TCPPacket, 20, payload.length);
 
         byte[] psuedoHeader = new byte[TCPPacket.length + PSUEDO_HEADER_LENGTH];
 
@@ -113,10 +110,7 @@ public final class TCPController
         psuedoHeader[10] = (byte) ((TCPPacket.length >> 8) & 0xFF);
         psuedoHeader[11] = (byte) (TCPPacket.length & 0xFF);
 
-        for (int i = 0; i < TCPPacket.length; i++)
-        {
-            psuedoHeader[i + PSUEDO_HEADER_LENGTH] = TCPPacket[i];
-        }
+        System.arraycopy(TCPPacket, 0, psuedoHeader, 12, TCPPacket.length);
 
         byte[] checksum = IPHeader.getChecksum(psuedoHeader);
         TCPPacket[16] = checksum[0];

@@ -15,7 +15,6 @@ import edu.byu.tlsresearch.TrustHub.Utils.TLSRecord;
  */
 public class TLSState
 {
-    private static String TAG = "TLSState";
 
     public enum tls_state
     {
@@ -71,6 +70,7 @@ public class TLSState
             {
                 buf.curState = tls_state.IRRELEVANT;
             }
+            String TAG = "TLSState";
             Log.d(TAG, "Send WHAT THE CRAP: " + e.getMessage() + "\n" + e.toString());
             e.printStackTrace();
         }

@@ -98,8 +98,7 @@ public class UDPChannel implements IChannelListener
 
     public void setSend(String newIP, int newPort)
     {
-        Connection toReplace = new Connection(newIP, newPort, mContext.getClientIP(), mContext.getClientPort());
-        mContext = toReplace;
+        mContext = new Connection(newIP, newPort, mContext.getClientIP(), mContext.getClientPort());
     }
 
     public void setmContext(Connection mContext) {

@@ -16,24 +16,24 @@ public final class TCPHeader
 
 	public static int getSourcePort(byte[] packet)
 	{
-		return (int) (((packet[0] & 0xFF) << 8) | (packet[1] & 0xFF));
+		return ((packet[0] & 0xFF) << 8) | (packet[1] & 0xFF);
 	}
 
 	public static int getDestinationPort(byte[] packet)
 	{
-		return (int) (((packet[2] & 0xFF) << 8) | (packet[3] & 0xFF));
+		return ((packet[2] & 0xFF) << 8) | (packet[3] & 0xFF);
 	}
 
 	public static long getSequenceNumber(byte[] packet)
 	{
 		return (long) (((packet[4] & 0xFF) << 24) | ((packet[5] & 0xFF) << 16)
-				| ((packet[6] & 0xFF) << 8) | (packet[7] & 0xFF)) & 0xFFFFFFFF;
+				| ((packet[6] & 0xFF) << 8) | (packet[7] & 0xFF));
 	}
 
 	public static long getAckNumber(byte[] packet)
 	{
 		return (long) (((packet[8] & 0xFF) << 24) | ((packet[9] & 0xFF) << 16)
-				| ((packet[10] & 0xFF) << 8) | (packet[11] & 0xFF)) & 0xFFFFFFFF;
+				| ((packet[10] & 0xFF) << 8) | (packet[11] & 0xFF));
 	}
 
 	public static int getDataOffset(byte[] packet)
@@ -47,32 +47,32 @@ public final class TCPHeader
 		 * the actual data.
 		 */
 
-		return (int) (packet[12] & 0xF0) >> 4;
+		return (packet[12] & 0xF0) >> 4;
 	}
 
 	public static int getReserved(byte[] packet)
 	{
-		return (int) ((packet[12] & 0x0E));
+		return (packet[12] & 0x0E);
 	}
 
 	public static int getFlags(byte[] packet)
 	{
-		return (int) ((packet[12] & 0x01) << 8) | (packet[13] & 0xFF);
+		return (packet[12] & 0x01) << 8 | (packet[13] & 0xFF);
 	}
 
 	public static int getWindowSize(byte[] packet)
 	{
-		return (int) (((packet[14] & 0xFF) << 8) | (packet[15] & 0xFF));
+		return ((packet[14] & 0xFF) << 8) | (packet[15] & 0xFF);
 	}
 
 	public static int getCheckSum(byte[] packet)
 	{
-		return (int) (((packet[16] & 0xFF) << 8) | (packet[17] & 0xFF));
+		return ((packet[16] & 0xFF) << 8) | (packet[17] & 0xFF);
 	}
 
 	public static int getUrgentPointer(byte[] packet)
 	{
-		return (int) (((packet[18] & 0xFF) << 8) | (packet[19] & 0xFF));
+		return ((packet[18] & 0xFF) << 8) | (packet[19] & 0xFF);
 	}
 
 	public static String getOption(byte[] packet)

@@ -26,7 +26,7 @@ import edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler;
 /**
  * Created by sheidbri on 5/27/15.
  */
-public class CertificateReporter
+class CertificateReporter
 {
     private int mPort;
     private String mHostname;

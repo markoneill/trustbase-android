@@ -10,12 +10,12 @@ public final class UDPHeader
 	
 	public static int getSourcePort(byte[] packet)
 	{
-		return (int) (((packet[0] & 0xFF) << 8) | (packet[1] & 0xFF));
+		return ((packet[0] & 0xFF) << 8) | (packet[1] & 0xFF);
 	}
 
 	public static int getDestinationPort(byte[] packet)
 	{
-		return (int) (((packet[2] & 0xFF) << 8) | (packet[3] & 0xFF));
+		return ((packet[2] & 0xFF) << 8) | (packet[3] & 0xFF);
 	}
 
 	public static int getLength(byte[] packet)
@@ -31,11 +31,11 @@ public final class UDPHeader
 		 * bytes.[5] RFC 2675 specifies that the length field is set to zero if the
 		 * length of the UDP header plus UDP data is greater than
 		 */
-		return (int) (((packet[4] & 0xFF) << 8) | (packet[5] & 0xFF));
+		return ((packet[4] & 0xFF) << 8) | (packet[5] & 0xFF);
 	}
 
 	public static int getChecksum(byte[] packet)
 	{
-		return (int) (((packet[6] & 0xFF) << 8) | (packet[7] & 0xFF));
+		return ((packet[6] & 0xFF) << 8) | (packet[7] & 0xFF);
 	}
 }

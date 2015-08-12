@@ -76,10 +76,7 @@ public class IPController
         IPPacket[10] = IPChecksum[0];
         IPPacket[11] = IPChecksum[1];
 
-        for(int i = 0; i < packet.length; i++)
-        {
-            IPPacket[i + IPHeader.IP_HEADER_LENGTH] = packet[i];
-        }
+        System.arraycopy(packet, 0, IPPacket, 20, packet.length);
         //Log.d("IPController", "packet: " + byteToHex(IPPacket));
         VPNServiceHandler.getVPNServiceHandler().receive(IPPacket);
     }

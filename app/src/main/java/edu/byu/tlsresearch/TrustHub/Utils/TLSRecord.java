@@ -31,7 +31,7 @@ public class TLSRecord
 
     public static int getRecordLength(ByteBuffer packet)
     {
-        return (int) (((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFF;
+        return (((packet.get() & 0xFF) << 8) | (packet.get() & 0xFF)) & 0xFFFF;
     }
 
 }

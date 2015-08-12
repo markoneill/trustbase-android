@@ -5,8 +5,8 @@ package edu.byu.tlsresearch.TrustHub.Controllers.Socket;
  */
 public interface IChannelListener
 {
-    public void receive(byte[] packet);
-    public void readFinish();
-    public void close();
-    public void writeFinish();
+    void receive(byte[] packet);
+    void readFinish();
+    void close();
+    void writeFinish();
 }

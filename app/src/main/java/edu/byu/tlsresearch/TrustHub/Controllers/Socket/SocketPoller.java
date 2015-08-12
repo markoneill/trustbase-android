@@ -66,8 +66,8 @@ public class SocketPoller implements Runnable
     public void noProxySend(SelectionKey key, byte[] toWrite)
     {
         // TODO: syncronize reads and writes to this buffer
-        Log.d(TAG, "NoProxySend");
-        Log.d(TAG, TrustHub.bytesToHex(toWrite));
+        //Log.d(TAG, "NoProxySend");
+        //Log.d(TAG, TrustHub.bytesToHex(toWrite));
         mToWrite.get(key).add(toWrite);
     }
 
@@ -109,6 +109,7 @@ public class SocketPoller implements Runnable
 
     public boolean close(SelectionKey key)
     {
+        Log.d(TAG, "Closed");
         if (key.isValid()) {
             key.interestOps(0);
             key.cancel();
