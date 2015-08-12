@@ -1,4 +1,4 @@
-package edu.byu.tlsresearch.TrustHub.Controllers.Utils;
+package edu.byu.tlsresearch.TrustHub.Utils;
 
 import java.security.cert.X509Certificate;
 

@@ -18,7 +18,7 @@ import javax.net.ssl.TrustManager;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.IChannelListener;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
-import edu.byu.tlsresearch.TrustHub.Controllers.Utils.TrustEveryone;
+import edu.byu.tlsresearch.TrustHub.Utils.TrustEveryone;
 
 /**
  * Created by sheidbr on 7/27/15.
