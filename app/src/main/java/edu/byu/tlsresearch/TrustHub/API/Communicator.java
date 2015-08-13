@@ -2,7 +2,9 @@ package edu.byu.tlsresearch.TrustHub.API;
 
 import android.util.Log;
 
+import java.security.cert.X509Certificate;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -12,7 +14,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TCPInterface;
 import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
@@ -22,7 +23,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 public class Communicator
 {
     private static Communicator mInstance;
-    private ConcurrentLinkedQueue<TCPInterface> Listeners;
+    private ConcurrentLinkedQueue<PluginInterface> mListeners;
 
     public static Communicator getInstance()
     {
@@ -35,36 +36,32 @@ public class Communicator
 
     private Communicator()
     {
-        Listeners = new ConcurrentLinkedQueue<>();
+        mListeners = new ConcurrentLinkedQueue<>();
     }
 
-    public void addListener(TCPInterface l)
+    public void addPlugin(PluginInterface l)
     {
-        Listeners.add(l);
+        mListeners.add(l);
     }
 
-    public byte[] sendTCPbody(byte[] payload, Connection context)
+    public PluginInterface.POLICY_RESPONSE policy_check(List<X509Certificate> cert_chain)
     {
-        return toListeners(payload, callType.SEND, context);
+        return toListeners(cert_chain);
     }
-
-    public byte[] receiveTCPbody(byte[] payload, Connection context)
-    {
-        return toListeners(payload, callType.RECEIVE, context);
-    }
-
-    private byte[] toListeners(byte[] payload, callType t, Connection context)
+    
+    private PluginInterface.POLICY_RESPONSE toListeners(List<X509Certificate> cert_chain)
     {
         ExecutorService executor = Executors.newCachedThreadPool();
-        final Iterator iterator = Listeners.iterator();
+        final Iterator iterator = mListeners.iterator();
         int timeout = 6000;
+        PluginInterface.POLICY_RESPONSE toReturn = PluginInterface.POLICY_RESPONSE.VALID_PROXY; //TODO: Valid because we just let the default CA system take a look
         while (iterator.hasNext())
         {
-            myTask task = new myTask((TCPInterface) iterator.next(), payload, t, context);
-            Future<byte[]> future = executor.submit(task);
+            myTask task = new myTask((PluginInterface) iterator.next(), cert_chain);
+            Future<PluginInterface.POLICY_RESPONSE> future = executor.submit(task);
             try
             {
-                payload = future.get(timeout, TimeUnit.MILLISECONDS);
+                toReturn = future.get(timeout, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e)
             {
             } catch (ExecutionException e)
@@ -75,41 +72,24 @@ public class Communicator
             }
         }
         executor.shutdown();
-        return payload;
+        return toReturn;
     }
-
-    private enum callType
+    
+    private class myTask implements Callable<PluginInterface.POLICY_RESPONSE>
     {
-        SEND, RECEIVE
-    }
+        private List<X509Certificate> mCert_chain;
+        private PluginInterface mListener;
 
-
-    private class myTask implements Callable<byte[]>
-    {
-        private byte[] mToReturn;
-        private TCPInterface mListener;
-        private callType mType;
-        private Connection mContext;
-
-        public myTask(TCPInterface l, byte[] payload, callType t, Connection context)
+        public myTask(PluginInterface l, List<X509Certificate> cert_chain)
         {
+            mCert_chain = cert_chain;
             mListener = l;
-            mToReturn = payload;
-            mType = t;
-            mContext = context;
         }
 
         @Override
-        public byte[] call() throws Exception
+        public PluginInterface.POLICY_RESPONSE call() throws Exception
         {
-            switch (mType)
-            {
-                case SEND:
-                    return mListener.sending(mToReturn, mContext);
-                case RECEIVE:
-                    return mListener.received(mToReturn, mContext);
-            }
-            return mToReturn;
+            return mListener.check(mCert_chain);
         }
     }
 }

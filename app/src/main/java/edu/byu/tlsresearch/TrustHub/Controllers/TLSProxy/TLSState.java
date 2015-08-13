@@ -5,6 +5,8 @@ import android.util.Log;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
+import edu.byu.tlsresearch.TrustHub.API.Communicator;
+import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.buf_state;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.connection_state;
 import edu.byu.tlsresearch.TrustHub.Utils.CertSpoofer;
@@ -204,10 +206,22 @@ public class TLSState
         final List<X509Certificate> certs = TLSHandshake.getCertificates(context.buffer);
         //Log.d(TAG, "Got Certificate for: " + con.hostname);
         //TODO Check policy engine
-        con.proxyState = TrustHub.proxy_state.PROXY; //TODO change from default
-        if (con.proxyState == TrustHub.proxy_state.PROXY)
+        Log.d("TLSState", "Getting response");
+        PluginInterface.POLICY_RESPONSE response = Communicator.getInstance().policy_check(certs);
+        Log.d("TLSState", "response: " + response.toString());
+        switch (response)
         {
-            con.spoofedStore = CertSpoofer.generateCert(certs.get(0));
+            case VALID_PROXY:
+                con.proxyState = TrustHub.proxy_state.PROXY;
+                con.spoofedStore = CertSpoofer.generateCert(certs.get(0));
+            break;
+            case INVALID:
+                con.proxyState = TrustHub.proxy_state.KILL;
+                //TODO mangle Certificate
+            break;
+            case VALID:
+                con.proxyState = TrustHub.proxy_state.NOPROXY;
+            break;
         }
     }
 

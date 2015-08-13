@@ -22,7 +22,7 @@ import java.util.List;
 import edu.byu.tlsresearch.TrustHub.API.Communicator;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
-import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TCPInterface;
+import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
 import edu.byu.tlsresearch.TrustHub.model.IPaddr;
 
 /**
@@ -41,7 +41,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
     private static VPNServiceHandler mInstance = null;
     public static String TAG = "VPNServiceHandler";
 
-    private final IBinder mBinder = new RawBinder();
+    private final IBinder mBinder = new PluginBinder();
 
     public static void setVPNService(VPNServiceHandler toSet)
     {
@@ -83,12 +83,12 @@ public class VPNServiceHandler extends VpnService implements Runnable
         return START_STICKY;
     }
 
-    public void addRawListener(TCPInterface callback)
+    public void addPlugin(PluginInterface callback)
     {
-        Communicator.getInstance().addListener(callback);
+        Communicator.getInstance().addPlugin(callback);
     }
 
-    public class RawBinder extends Binder
+    public class PluginBinder extends Binder
     {
         public VPNServiceHandler getService()
         {
