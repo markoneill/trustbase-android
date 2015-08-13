@@ -30,7 +30,13 @@
         </activity>
 
         <service
+            android:name="edu.byu.tlsresearch.TrustHub.API.PolicyEngine"
+            android:exported="true"
+            >
+        </service>
+        <service
             android:name="edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler"
+            android:exported="false"
             android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService"/>

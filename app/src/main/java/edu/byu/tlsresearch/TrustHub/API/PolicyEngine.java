@@ -1,5 +1,10 @@
 package edu.byu.tlsresearch.TrustHub.API;
 
+import android.app.Service;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.security.cert.X509Certificate;
@@ -18,10 +23,29 @@ import java.util.concurrent.TimeoutException;
  * Created by sheidbri on 5/5/15.
  * Handles communication between our service and any bound processes wanting access
  */
-public class PolicyEngine
+public class PolicyEngine extends Service
 {
     private static PolicyEngine mInstance;
     private ConcurrentLinkedQueue<PluginInterface> mListeners;
+    private final IBinder mBinder = new PluginBinder();
+    private static String TAG = "PolicyEngine";
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId)
+    {
+        Log.d(TAG, "Queried");
+        mListeners = new ConcurrentLinkedQueue<>();
+        mInstance = this;
+        return START_STICKY;
+    }
+
+    public class PluginBinder extends Binder
+    {
+        public void addPlugin(PluginInterface toAdd)
+        {
+            PolicyEngine.getInstance().addPlugin(toAdd);
+        }
+    }
 
     public static PolicyEngine getInstance()
     {
@@ -32,9 +56,11 @@ public class PolicyEngine
         return mInstance;
     }
 
-    private PolicyEngine()
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent)
     {
-        mListeners = new ConcurrentLinkedQueue<>();
+        return mBinder;
     }
 
     public void addPlugin(PluginInterface l)
@@ -70,6 +96,7 @@ public class PolicyEngine
             }
         }
         executor.shutdown();
+        Log.d(TAG, "Queried");
         return toReturn;
     }
     

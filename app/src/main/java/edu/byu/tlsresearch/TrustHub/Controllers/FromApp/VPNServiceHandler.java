@@ -41,8 +41,6 @@ public class VPNServiceHandler extends VpnService implements Runnable
     private static VPNServiceHandler mInstance = null;
     public static String TAG = "VPNServiceHandler";
 
-    private final IBinder mBinder = new PluginBinder();
-
     public static void setVPNService(VPNServiceHandler toSet)
     {
         mInstance = toSet;
@@ -61,7 +59,8 @@ public class VPNServiceHandler extends VpnService implements Runnable
         {
             mInterfaceThread.interrupt();
         }
-
+        Log.d(TAG, PolicyEngine.getInstance().toString());
+        this.getBaseContext().startService(new Intent(this.getBaseContext(), PolicyEngine.class));
         // Start a new session
         mInterfaceThread = new Thread(this, TAG);
         mPollerThread = new Thread(SocketPoller.getInstance(), TAG);
@@ -81,30 +80,6 @@ public class VPNServiceHandler extends VpnService implements Runnable
         // documentation for more detail on the semantics.
 
         return START_STICKY;
-    }
-
-    public void addPlugin(PluginInterface callback)
-    {
-        PolicyEngine.getInstance().addPlugin(callback);
-    }
-
-    public class PluginBinder extends Binder
-    {
-        public VPNServiceHandler getService()
-        {
-            return VPNServiceHandler.getVPNServiceHandler();
-        }
-    }
-
-    @Override
-    public IBinder onBind(Intent intent)
-    {
-        if (mInterfaceThread == null || mPollerThread == null) // Must (my requirement?) call through onStartCommand because I think that is the only way to have it prepared
-        {
-            //TODO: can we just call onStartCommand
-            return null;
-        }
-        return mBinder;
     }
 
     public boolean receive(byte[] packet)
@@ -141,6 +116,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
 
         while (true)
         {
+            Log.d(TAG, "MARK");
             packet.clear();
             try
             {
@@ -243,6 +219,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
 
     private void end()
     {
+        PolicyEngine.getInstance().stopService(new Intent());
         if (mInterfaceThread != null)
         {
             mInterfaceThread.interrupt(); //stop the thread
