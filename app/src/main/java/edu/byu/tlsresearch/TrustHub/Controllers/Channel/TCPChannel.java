@@ -17,7 +17,6 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
  * <p/>
  * Manages a TCP Socket (mChannelKey) keeping track of SEQ and ACK numbers states of connections.
  * Marshalls traffic between the TCPController and the SocketPoller.
- * Also, communicates with Communicator to edit payloads.
  * Traffic going to SocketPoller is sent through TCBState (mState).
  */
 public class TCPChannel implements IChannelListener

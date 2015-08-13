@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 
-import edu.byu.tlsresearch.TrustHub.API.Communicator;
+import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
 import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
@@ -28,7 +28,7 @@ import edu.byu.tlsresearch.TrustHub.model.IPaddr;
 /**
  * Handles the VPNService
  * Marshalls traffic between non-protected sockets and the IPController
- * Handles Bind requests that get sent to the Communicator
+ * Handles Bind requests that get sent to the PolicyEngine
  */
 
 public class VPNServiceHandler extends VpnService implements Runnable
@@ -85,7 +85,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
 
     public void addPlugin(PluginInterface callback)
     {
-        Communicator.getInstance().addPlugin(callback);
+        PolicyEngine.getInstance().addPlugin(callback);
     }
 
     public class PluginBinder extends Binder

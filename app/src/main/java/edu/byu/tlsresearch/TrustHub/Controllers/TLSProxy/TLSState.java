@@ -5,7 +5,7 @@ import android.util.Log;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
-import edu.byu.tlsresearch.TrustHub.API.Communicator;
+import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.buf_state;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.connection_state;
@@ -207,7 +207,7 @@ public class TLSState
         //Log.d(TAG, "Got Certificate for: " + con.hostname);
         //TODO Check policy engine
         Log.d("TLSState", "Getting response");
-        PluginInterface.POLICY_RESPONSE response = Communicator.getInstance().policy_check(certs);
+        PluginInterface.POLICY_RESPONSE response = PolicyEngine.getInstance().policy_check(certs);
         Log.d("TLSState", "response: " + response.toString());
         switch (response)
         {

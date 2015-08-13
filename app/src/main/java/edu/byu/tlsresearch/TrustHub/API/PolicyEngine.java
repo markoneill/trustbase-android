@@ -14,27 +14,25 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import edu.byu.tlsresearch.TrustHub.model.Connection;
-
 /**
  * Created by sheidbri on 5/5/15.
  * Handles communication between our service and any bound processes wanting access
  */
-public class Communicator
+public class PolicyEngine
 {
-    private static Communicator mInstance;
+    private static PolicyEngine mInstance;
     private ConcurrentLinkedQueue<PluginInterface> mListeners;
 
-    public static Communicator getInstance()
+    public static PolicyEngine getInstance()
     {
         if (mInstance == null)
         {
-            mInstance = new Communicator();
+            mInstance = new PolicyEngine();
         }
         return mInstance;
     }
 
-    private Communicator()
+    private PolicyEngine()
     {
         mListeners = new ConcurrentLinkedQueue<>();
     }
@@ -68,7 +66,7 @@ public class Communicator
             {
             } catch (TimeoutException e)
             {
-                Log.d("Communicator", "timeout");
+                Log.d("PolicyEngine", "timeout");
             }
         }
         executor.shutdown();
