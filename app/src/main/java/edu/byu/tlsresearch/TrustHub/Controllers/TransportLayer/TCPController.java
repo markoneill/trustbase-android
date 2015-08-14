@@ -26,7 +26,6 @@ public final class TCPController
 
     public static void send(Connection context, byte[] transport)
     {
-        Log.d("TCPController", context.getClientIP());
         try
         {
             TCPChannel connectionChannel = clients.get(context);

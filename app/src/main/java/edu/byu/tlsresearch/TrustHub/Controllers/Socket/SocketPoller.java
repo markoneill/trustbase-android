@@ -116,7 +116,6 @@ public class SocketPoller implements Runnable
 
     public boolean close(SelectionKey key)
     {
-        Log.d(TAG, "Closed");
         if (key.isValid())
         {
             key.interestOps(0);
