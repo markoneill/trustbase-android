@@ -116,7 +116,6 @@ public class VPNServiceHandler extends VpnService implements Runnable
 
         while (true)
         {
-            Log.d(TAG, "MARK");
             packet.clear();
             try
             {

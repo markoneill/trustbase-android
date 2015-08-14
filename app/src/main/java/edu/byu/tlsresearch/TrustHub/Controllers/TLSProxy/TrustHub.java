@@ -193,7 +193,11 @@ public class TrustHub
                         //No longer care about the connection
                         conState.recvBuffer.curState = TLSState.tls_state.IRRELEVANT;
                         //Should send everything to the ServerHelloDone
+                        Log.d(TAG, "No proxy: " + conState.recvBuffer.buffer.toString());
                         reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
+                        conState.recvBuffer.buffer.get(reallyReceive);
+                        Log.d(TAG, "Sending: " + bytesToHex(reallyReceive));
+                        Log.d(TAG, "Now proxy: " + conState.recvBuffer.buffer.toString());
                         //TODO delete the buffer?
                         break;
                     case PROXY:
@@ -254,7 +258,8 @@ public class TrustHub
                         Log.e(TAG, "Policy Engine should've made a decision");
                         break;
                 }
-            } else
+            }
+            else
             {
                 if (conState.recvBuffer.curState == TLSState.tls_state.IRRELEVANT)
                 {
@@ -268,13 +273,14 @@ public class TrustHub
                 }
             }
             conState.recvBuffer.buffer.compact();
-        } else
+        }
+        else
         {
             reallyReceive = packet;
         }
         if (reallyReceive != null)
         {
-            ((IChannelListener) key.attachment()).receive(packet);
+            ((IChannelListener) key.attachment()).receive(reallyReceive);
         }
     }
 
