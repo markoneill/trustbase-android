@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.UDPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub;
 import edu.byu.tlsresearch.TrustHub.Controllers.TransportLayer.UDPController;
@@ -179,7 +180,14 @@ public class SocketPoller implements Runnable
                                 if (length > 0)
                                 {
                                     packet.flip();
-                                    proxyRead(key, packet, length);
+                                    if(key.attachment() instanceof TCPChannel)
+                                    {
+                                        proxyRead(key, packet, length);
+                                    }
+                                    else
+                                    {
+                                        noProxyRead(key, packet, length);
+                                    }
                                 }
                                 if (length == -1)
                                 {

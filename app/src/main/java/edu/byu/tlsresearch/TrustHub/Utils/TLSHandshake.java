@@ -130,7 +130,7 @@ public class TLSHandshake
             //Log.d("TLSHandshake", "certsLength: " + certsLength);
             //Log.d("TLSHandshake", "buffer: " + buffer.toString());
             int certLength = 0;
-            ArrayList<X509Certificate> toReturn = new ArrayList<>();
+            ArrayList<X509Certificate> toReturn = new ArrayList<X509Certificate>();
             CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
 
             for (int i = 0; i < certsLength; i += certLength + TLSHandshake.CERT_HEADER_LENGTH)

@@ -23,7 +23,7 @@ public class TrustHub
 {
     private String TAG = "TrustHub";
     private TLSState tls_state_handler = new TLSState();
-    private Map<Connection, connection_state> mStates = new HashMap<>();
+    private Map<Connection, connection_state> mStates = new HashMap<Connection, connection_state>();
 
     private static TrustHub mInstance;
 

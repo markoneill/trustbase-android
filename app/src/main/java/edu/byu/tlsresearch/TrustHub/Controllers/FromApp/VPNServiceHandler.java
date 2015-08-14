@@ -1,26 +1,32 @@
 package edu.byu.tlsresearch.TrustHub.Controllers.FromApp;
 
 import android.content.Intent;
+import android.net.DhcpInfo;
 import android.net.VpnService;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
+import android.text.format.Formatter;
 import android.util.Log;
+import android.widget.TextView;
 
 import org.apache.http.conn.util.InetAddressUtils;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
-import edu.byu.tlsresearch.TrustHub.model.IPaddr;
 
 /**
  * Handles the VPNService
@@ -118,6 +124,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
             try
             {
                 length = mAppIn.read(packet.array());
+                Log.d(TAG, "Read");
             }
             catch (IOException e)
             {
@@ -141,14 +148,18 @@ public class VPNServiceHandler extends VpnService implements Runnable
     private void configure()
     {
         Builder builder = new Builder();
-        IPaddr ip = getIPAddress(true);
+        List<InterfaceAddress> ip = getIPAddress();
+        Log.d(TAG, "Number of ip addresses: " + ip.size());
         if (ip == null)
         {
             Log.e(TAG, "Network not detected");
             return;
         }
-        Log.d(TAG, "IP ADDRESS IS: " + ip.toString() + "/" + ip.getMask());
-        builder.addAddress(ip.toString(), ip.getMask());
+        for(InterfaceAddress addr : ip)
+        {
+            Log.d(TAG, "IP ADDRESS IS: " + addr.getAddress() + "/" + addr.getNetworkPrefixLength());
+            builder.addAddress(addr.getAddress(), addr.getNetworkPrefixLength());
+        }
         builder.addRoute("0.0.0.0", 0);
         // builder.addDnsServer("8.8.8.8"); // TODO get current DNS Servers?
 
@@ -167,33 +178,30 @@ public class VPNServiceHandler extends VpnService implements Runnable
         }
     }
 
-    private static IPaddr getIPAddress(boolean useIPv4)
+    private List<InterfaceAddress> getIPAddress()
     {
-        // WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
-        // String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-        IPaddr toReturn = new IPaddr();
+        List<InterfaceAddress> toReturn = new ArrayList<InterfaceAddress>();
         try
         {
-            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
-            for (int i = 0; i < interfaces.size(); i++)
+            ArrayList<NetworkInterface> allInterfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface curInterface : allInterfaces)
             {
-                List<InetAddress> addrs = Collections.list(interfaces.get(i).getInetAddresses());
-                for (int k = 0; k < addrs.size(); k++)
+                for (InterfaceAddress addr : curInterface.getInterfaceAddresses())
                 {
-                    toReturn.setMask(interfaces.get(i).getInterfaceAddresses().get(k).getNetworkPrefixLength());
-                    if (!addrs.get(k).isLoopbackAddress())
+                    if (!addr.getAddress().isLoopbackAddress())
                     {
-                        toReturn.setAddress(addrs.get(k).getHostAddress().toUpperCase());
-                        boolean isIPv4 = InetAddressUtils.isIPv4Address(addrs.get(k).getHostAddress().toUpperCase());
-                        if (useIPv4)
+                        if(addr.getAddress() instanceof Inet4Address)
                         {
-                            if (isIPv4)
-                                return toReturn;
+                            toReturn.add(addr);
                         }
                         else
                         {
-                            return null;
+                            Log.d(TAG, "Not ipv4: " + addr.getAddress());
                         }
+                    }
+                    else
+                    {
+                        Log.d(TAG, "Loopback: " + addr.getAddress().toString());
                     }
                 }
             }
@@ -202,7 +210,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
         {
             Log.d(TAG, "VPNIPException: " + ex);
         } // for now eat exceptions
-        return null;
+        return toReturn;
     }
 
     @Override

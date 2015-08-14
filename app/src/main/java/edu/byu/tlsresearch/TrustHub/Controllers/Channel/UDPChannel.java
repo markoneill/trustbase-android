@@ -45,7 +45,7 @@ public class UDPChannel implements IChannelListener
     public void send(Connection context, byte[] packet)
     {
         this.setSend(context.getDestIP(), context.getDestPort());
-        SocketPoller.getInstance().proxySend(mChannelKey, UDPController.stripHeaders(packet));
+        SocketPoller.getInstance().noProxySend(mChannelKey, UDPController.stripHeaders(packet));
         mUsedRecently = System.currentTimeMillis();
     }
 
