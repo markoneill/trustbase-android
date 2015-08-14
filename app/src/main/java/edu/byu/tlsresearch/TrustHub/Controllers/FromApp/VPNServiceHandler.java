@@ -2,9 +2,7 @@ package edu.byu.tlsresearch.TrustHub.Controllers.FromApp;
 
 import android.content.Intent;
 import android.net.VpnService;
-import android.os.Binder;
 import android.os.Build;
-import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -22,7 +20,6 @@ import java.util.List;
 import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
-import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
 import edu.byu.tlsresearch.TrustHub.model.IPaddr;
 
 /**
@@ -90,7 +87,8 @@ public class VPNServiceHandler extends VpnService implements Runnable
             mAppOut.write(packet);  //TODO: Test whether receive and reads at the same time crash it
             mAppOut.flush();
             success = true;
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             Log.d(TAG, "App Exception" + e);
             e.printStackTrace();
@@ -120,7 +118,8 @@ public class VPNServiceHandler extends VpnService implements Runnable
             try
             {
                 length = mAppIn.read(packet.array());
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
                 Log.e(TAG, "Error reading from interface");
             }
@@ -190,14 +189,16 @@ public class VPNServiceHandler extends VpnService implements Runnable
                         {
                             if (isIPv4)
                                 return toReturn;
-                        } else
+                        }
+                        else
                         {
                             return null;
                         }
                     }
                 }
             }
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             Log.d(TAG, "VPNIPException: " + ex);
         } // for now eat exceptions
@@ -238,7 +239,8 @@ public class VPNServiceHandler extends VpnService implements Runnable
             try
             {
                 mInterface.close();
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
                 Log.e(TAG, "Error closing interface: " + e);
             }

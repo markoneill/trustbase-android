@@ -72,7 +72,7 @@ public class PolicyEngine extends Service
     {
         return toListeners(cert_chain);
     }
-    
+
     private PluginInterface.POLICY_RESPONSE toListeners(List<X509Certificate> cert_chain)
     {
         ExecutorService executor = Executors.newCachedThreadPool();
@@ -86,11 +86,14 @@ public class PolicyEngine extends Service
             try
             {
                 toReturn = future.get(timeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e)
+            }
+            catch (InterruptedException e)
             {
-            } catch (ExecutionException e)
+            }
+            catch (ExecutionException e)
             {
-            } catch (TimeoutException e)
+            }
+            catch (TimeoutException e)
             {
                 Log.d("PolicyEngine", "timeout");
             }
@@ -99,7 +102,7 @@ public class PolicyEngine extends Service
         Log.d(TAG, "Queried");
         return toReturn;
     }
-    
+
     private class myTask implements Callable<PluginInterface.POLICY_RESPONSE>
     {
         private List<X509Certificate> mCert_chain;

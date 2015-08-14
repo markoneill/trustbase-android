@@ -118,7 +118,8 @@ public class TrustHub
                         try
                         {
                             conState.myProxy.send(proxySend);
-                        } catch (SSLException e)
+                        }
+                        catch (SSLException e)
                         {
                             Log.e(TAG, "Proxy Send failed: " + e.getMessage());
                         }
@@ -131,7 +132,8 @@ public class TrustHub
                         reallySend = toWrite;
                         break;
                 }
-            } else
+            }
+            else
             {
                 conState.sendBuffer.buffer.mark();
                 TLSState.handle(conState, conState.sendBuffer);
@@ -143,7 +145,8 @@ public class TrustHub
                     //pretend we haven't gotten anything lolol
                     Log.d(TAG, "Not whole ClientHello");
                     conState.sendBuffer.curState = TLSState.tls_state.UNKNOWN;
-                } else
+                }
+                else
                 {
                     reallySend = new byte[conState.sendBuffer.buffer.remaining()];
                     conState.sendBuffer.buffer.mark(); // Want to save ClientHello
@@ -152,7 +155,8 @@ public class TrustHub
                 }
             }
             conState.sendBuffer.buffer.compact();
-        } else
+        }
+        else
         {
             reallySend = toWrite;
         }
@@ -168,8 +172,8 @@ public class TrustHub
         Connection conn = ((TCPChannel) key.attachment()).getmContext();
         connection_state conState = getState(conn);
         byte[] reallyReceive = null;
-        Log.d(TAG, conState.recvBuffer.curState.toString());
-        Log.d(TAG, conState.proxyState.toString());
+        //Log.d(TAG, conState.recvBuffer.curState.toString());
+        //Log.d(TAG, conState.proxyState.toString());
         if (conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT)
         {
             //Log.d(TAG, "Cleared: " + conState.recvBuffer.buffer.toString());
@@ -193,11 +197,8 @@ public class TrustHub
                         //No longer care about the connection
                         conState.recvBuffer.curState = TLSState.tls_state.IRRELEVANT;
                         //Should send everything to the ServerHelloDone
-                        Log.d(TAG, "No proxy: " + conState.recvBuffer.buffer.toString());
                         reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
                         conState.recvBuffer.buffer.get(reallyReceive);
-                        Log.d(TAG, "Sending: " + bytesToHex(reallyReceive));
-                        Log.d(TAG, "Now proxy: " + conState.recvBuffer.buffer.toString());
                         //TODO delete the buffer?
                         break;
                     case PROXY:
@@ -210,9 +211,9 @@ public class TrustHub
                                 // We compact at end so just set to limit
                                 conState.recvBuffer.buffer.position(conState.recvBuffer.buffer.limit());
                                 //Log.d(TAG, "Cleared: " + conState.recvBuffer.buffer.toString());
-                                Log.d(TAG, key.toString());
+                                //Log.d(TAG, key.toString());
                                 key = ((TCPChannel) key.attachment()).replaceChannel();
-                                Log.d(TAG, key.toString());
+                                //Log.d(TAG, key.toString());
                                 // Start of proxying
                                 conState.startProxy(key);
                                 conState.sendBuffer.buffer.flip();
@@ -222,19 +223,23 @@ public class TrustHub
                                 // Log.d(TAG, "Sending Client Hello");
                                 conState.myProxy.send(clientHello);
                                 conState.myProxy.receive(new byte[0]); //Kickstart the proxy
-                            } catch (SSLException e)
+                            }
+                            catch (SSLException e)
                             {
                                 Log.e(TAG, "Send clientHello failed: " + e.getMessage());
                                 e.printStackTrace();
-                            } catch (IOException e)
+                            }
+                            catch (IOException e)
                             {
                                 Log.e(TAG, "Unable to open new socket: " + e.getMessage());
-                            } catch (Exception e)
+                            }
+                            catch (Exception e)
                             {
                                 Log.e(TAG, "Proxy failed: " + e.getMessage());
                                 e.printStackTrace();
                             }
-                        } else
+                        }
+                        else
                         {
                             byte[] proxyReceive = new byte[conState.recvBuffer.buffer.remaining()];
                             conState.recvBuffer.buffer.get(proxyReceive); // Get all the handshake data
@@ -242,7 +247,8 @@ public class TrustHub
                             try
                             {
                                 conState.myProxy.receive(proxyReceive);
-                            } catch (SSLException e)
+                            }
+                            catch (SSLException e)
                             {
                                 Log.e(TAG, "Proxy Receive failed: " + e.getMessage());
                                 e.printStackTrace();
@@ -266,7 +272,8 @@ public class TrustHub
                     reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
                     conState.recvBuffer.buffer.get(reallyReceive);
                     //TODO delete buffer?
-                } else
+                }
+                else
                 {
                     //Haven't got it all yet so wait
                     conState.recvBuffer.curState = TLSState.tls_state.UNKNOWN;

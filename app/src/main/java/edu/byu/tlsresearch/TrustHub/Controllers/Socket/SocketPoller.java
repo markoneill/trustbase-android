@@ -44,7 +44,8 @@ public class SocketPoller implements Runnable
             try
             {
                 mInstance = new SocketPoller();
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
                 assert false; // TODO: gracefully fail?
             }
@@ -105,7 +106,8 @@ public class SocketPoller implements Runnable
                 mToWrite.put(toAdd, new ArrayList<byte[]>());
             }
             return toAdd;
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             return null;
         }
@@ -123,7 +125,8 @@ public class SocketPoller implements Runnable
         try
         {
             key.channel().close();
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             Log.e(TAG, "Socket Close fail");
             return false;
@@ -164,7 +167,8 @@ public class SocketPoller implements Runnable
                                 if (key.channel() instanceof SocketChannel)
                                 {
                                     length = ((SocketChannel) key.channel()).read(packet);
-                                } else if (key.channel() instanceof DatagramChannel)
+                                }
+                                else if (key.channel() instanceof DatagramChannel)
                                 {
 
                                     InetSocketAddress from = (InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
@@ -182,10 +186,12 @@ public class SocketPoller implements Runnable
                                     key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
                                     ((IChannelListener) key.attachment()).readFinish();
                                 }
-                            } catch (ClosedChannelException e)
+                            }
+                            catch (ClosedChannelException e)
                             {
                                 ((IChannelListener) key.attachment()).close();
-                            } catch (SocketException e)
+                            }
+                            catch (SocketException e)
                             {
                                 ((IChannelListener) key.attachment()).close();
                             }
@@ -199,7 +205,8 @@ public class SocketPoller implements Runnable
                         keyIterator.remove();
                     }
                 }
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
                 e.printStackTrace();
             }
@@ -223,13 +230,15 @@ public class SocketPoller implements Runnable
                 try
                 {
                     totalWrote = ((SocketChannel) key.channel()).write(writer);
-                } catch (SocketException e)
+                }
+                catch (SocketException e)
                 {
                     key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
                     ((IChannelListener) key.attachment()).writeFinish();
                     return;
                 }
-            } else if (key.channel() instanceof DatagramChannel)
+            }
+            else if (key.channel() instanceof DatagramChannel)
             {
                 try
                 {
@@ -238,7 +247,8 @@ public class SocketPoller implements Runnable
                             attachment.getmContext().getDestPort());
                     totalWrote = ((DatagramChannel) key.channel()).send(writer, toSend);
                     ((UDPChannel) key.attachment()).setRecentlyUsed(System.currentTimeMillis());
-                } catch (IOException e)
+                }
+                catch (IOException e)
                 {
                     //continue;
                 }
@@ -246,7 +256,8 @@ public class SocketPoller implements Runnable
             if (totalWrote == toWrite.length)
             {
                 mToWrite.get(key).remove(0);
-            } else
+            }
+            else
             {
                 Log.d(TAG, "Not full write: " + totalWrote);
                 mToWrite.get(key).set(0, Arrays.copyOfRange(mToWrite.get(key).get(0), totalWrote, toWrite.length));
@@ -259,7 +270,7 @@ public class SocketPoller implements Runnable
             synchronized (this)
             {
                 //Dont want something to have been added when we got here
-                if(mToWrite.get(key).isEmpty())
+                if (mToWrite.get(key).isEmpty())
                     key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
             }
         }

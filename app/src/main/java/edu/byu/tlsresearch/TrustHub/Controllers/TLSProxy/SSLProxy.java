@@ -154,7 +154,8 @@ public class SSLProxy
                 }
             }
             toOther.compact();
-        } else
+        }
+        else
         {
             do
             {

@@ -24,7 +24,8 @@ public enum TCBState implements ITCBState
                         context.setSEQ(context.getSEQ() + 1);
 
                         context.setmState(TCBState.ESTABLISHED);
-                    } else
+                    }
+                    else
                     {
                         // Page 64 https://www.ietf.org/rfc/rfc793.txt
                         if ((flags & TCPHeader.RST) == 0)
@@ -35,7 +36,8 @@ public enum TCBState implements ITCBState
                                 context.setSEQ(0);
                                 context.setACK(TCPHeader.getSequenceNumber(transport) + TCPHeader.getPayload(transport).length);
                                 flagsToSend |= TCPHeader.ACK;
-                            } else
+                            }
+                            else
                             {
                                 context.setSEQ(TCPHeader.getAckNumber(transport));
                             }

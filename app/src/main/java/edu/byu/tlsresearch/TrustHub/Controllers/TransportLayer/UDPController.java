@@ -84,7 +84,8 @@ public final class UDPController
                     //Log.d("UDPChannel", "removed");
                 }
             }
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             Log.d("UDPChannel", "mark and sweep died " + e.getMessage());
         }

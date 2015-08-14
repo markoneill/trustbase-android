@@ -5,8 +5,8 @@ import android.util.Log;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
-import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
+import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.buf_state;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub.connection_state;
 import edu.byu.tlsresearch.TrustHub.Utils.CertSpoofer;
@@ -66,7 +66,8 @@ public class TLSState
                         break;
                 }
             }
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             if (buf != null)
             {
@@ -90,7 +91,8 @@ public class TLSState
         {
             buf.curState = tls_state.RECORD_LAYER;
             buf.toRead = TLSRecord.RECORD_HEADER_SIZE;
-        } else
+        }
+        else
         {
             buf.curState = tls_state.IRRELEVANT;
             buf.toRead = 0;
@@ -214,14 +216,14 @@ public class TLSState
             case VALID_PROXY:
                 con.proxyState = TrustHub.proxy_state.PROXY;
                 con.spoofedStore = CertSpoofer.generateCert(certs.get(0));
-            break;
+                break;
             case INVALID:
                 con.proxyState = TrustHub.proxy_state.KILL;
                 //TODO mangle Certificate
-            break;
+                break;
             case VALID:
                 con.proxyState = TrustHub.proxy_state.NOPROXY;
-            break;
+                break;
         }
     }
 

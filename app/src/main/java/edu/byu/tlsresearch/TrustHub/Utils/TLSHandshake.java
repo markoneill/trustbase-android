@@ -149,11 +149,13 @@ public class TLSHandshake
             }
 
             return toReturn;
-        } catch (CertificateException e)
+        }
+        catch (CertificateException e)
         {
             Log.e("TLSRecord", "Creating certificate generator failed");
             return null;
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             Log.e("TLSRecord", "Java sucks " + e.getMessage());
             e.printStackTrace();

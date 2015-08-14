@@ -40,16 +40,20 @@ public class CertSpoofer
             mKS = KeyStore.getInstance("PKCS12");
             mKS.load(assets.open("TrustHubstore.p12"), "password".toCharArray());
             //Log.d(TAG, "Keystore loaded");
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             e.printStackTrace();
-        } catch (KeyStoreException e)
+        }
+        catch (KeyStoreException e)
         {
             e.printStackTrace();
-        } catch (CertificateException e)
+        }
+        catch (CertificateException e)
         {
             e.printStackTrace();
-        } catch (NoSuchAlgorithmException e)
+        }
+        catch (NoSuchAlgorithmException e)
         {
             e.printStackTrace();
         }
@@ -94,7 +98,8 @@ public class CertSpoofer
             Certificate[] chain = {newCert, caCert};
             newKS.setKeyEntry("ForgedCert", mNewCertPair.getPrivate(), "password".toCharArray(), chain);
             return newKS;
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             String TAG = "CertSpoofer";
             Log.d(TAG, e.getMessage());

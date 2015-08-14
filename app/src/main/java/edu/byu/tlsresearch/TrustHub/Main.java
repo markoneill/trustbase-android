@@ -59,7 +59,8 @@ public class Main extends AppCompatActivity implements View.OnClickListener
         if (intent != null)
         {
             startActivityForResult(intent, 0);
-        } else
+        }
+        else
         {
             onActivityResult(0, Activity.RESULT_OK, null);
         }

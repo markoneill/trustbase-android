@@ -35,7 +35,8 @@ public class UDPChannel implements IChannelListener
             socket.socket().bind(null);
             VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
             setmChannelKey(SocketPoller.getInstance().registerChannel(socket, context, this));
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             // TODO: tell the app it can't connect
         }

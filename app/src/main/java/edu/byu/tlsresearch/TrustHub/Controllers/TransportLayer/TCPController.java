@@ -35,7 +35,8 @@ public final class TCPController
                 clients.put(context, connectionChannel);
             }
             connectionChannel.send(transport);
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             Log.e("TCPChannel", "failed to connect" + e.getMessage());
         }
