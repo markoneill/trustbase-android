@@ -30,14 +30,15 @@ public class PolicyEngine extends Service
     private final IBinder mBinder = new PluginBinder();
     private static String TAG = "PolicyEngine";
 
-    @Override
+    //onStartCommand is probably not necessary; moved functionality to onBind.
+    /*@Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         Log.d(TAG, "Queried");
         mListeners = new ConcurrentLinkedQueue<PluginInterface>();
         mInstance = this;
         return START_STICKY;
-    }
+    }*/
 
     public class PluginBinder extends Binder
     {
@@ -60,6 +61,9 @@ public class PolicyEngine extends Service
     @Override
     public IBinder onBind(Intent intent)
     {
+        Log.d(TAG, "Queried");
+        mListeners = new ConcurrentLinkedQueue<PluginInterface>();
+        mInstance = this;
         return mBinder;
     }
 
