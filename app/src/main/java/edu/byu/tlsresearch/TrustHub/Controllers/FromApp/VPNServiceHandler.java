@@ -1,10 +1,14 @@
 package edu.byu.tlsresearch.TrustHub.Controllers.FromApp;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.DhcpInfo;
 import android.net.VpnService;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.text.format.Formatter;
 import android.util.Log;
@@ -41,6 +45,22 @@ public class VPNServiceHandler extends VpnService implements Runnable
     private ParcelFileDescriptor mInterface;
     private FileOutputStream mAppOut;
 
+    private PolicyEngine.PluginBinder mPolicyEngineBinder = null;
+    private ServiceConnection mPolicyEngineConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mPolicyEngineBinder = (PolicyEngine.PluginBinder) service;
+            Log.d(TAG, "PolicyEngine connected");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mPolicyEngineBinder = null;
+            Log.e(TAG, "Lost connection with PolicyEngine");
+        }
+    } ;
+
     private static VPNServiceHandler mInstance = null;
     public static String TAG = "VPNServiceHandler";
 
@@ -63,7 +83,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
             mInterfaceThread.interrupt();
         }
         Log.d(TAG, PolicyEngine.getInstance().toString());
-        this.getBaseContext().startService(new Intent(this.getBaseContext(), PolicyEngine.class));
+        bindService(new Intent(this.getBaseContext(), PolicyEngine.class), mPolicyEngineConnection, Context.BIND_AUTO_CREATE);
         // Start a new session
         mInterfaceThread = new Thread(this, TAG);
         mPollerThread = new Thread(SocketPoller.getInstance(), TAG);
