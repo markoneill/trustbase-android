@@ -31,6 +31,7 @@ import java.util.List;
 import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
+import edu.byu.tlsresearch.TrustHub.PluginTest.Plugins.TestPlugin;
 
 /**
  * Handles the VPNService
@@ -52,6 +53,8 @@ public class VPNServiceHandler extends VpnService implements Runnable
         public void onServiceConnected(ComponentName name, IBinder service) {
             mPolicyEngineBinder = (PolicyEngine.PluginBinder) service;
             Log.d(TAG, "PolicyEngine connected");
+            //Wait for binding return call before adding plugins
+            mPolicyEngineBinder.addPlugin(mTestPlugin);
         }
 
         @Override
@@ -60,6 +63,9 @@ public class VPNServiceHandler extends VpnService implements Runnable
             Log.e(TAG, "Lost connection with PolicyEngine");
         }
     } ;
+
+    //Plugin Test
+    TestPlugin mTestPlugin = new TestPlugin();
 
     private static VPNServiceHandler mInstance = null;
     public static String TAG = "VPNServiceHandler";
@@ -82,8 +88,12 @@ public class VPNServiceHandler extends VpnService implements Runnable
         {
             mInterfaceThread.interrupt();
         }
+        //Bind to PolicyEngine
         Log.d(TAG, PolicyEngine.getInstance().toString());
-        bindService(new Intent(this.getBaseContext(), PolicyEngine.class), mPolicyEngineConnection, Context.BIND_AUTO_CREATE);
+        bindService(new Intent(this.getBaseContext(), PolicyEngine.class), mPolicyEngineConnection,
+                Context.BIND_AUTO_CREATE);
+        //TODO: Bind to plugins
+
         // Start a new session
         mInterfaceThread = new Thread(this, TAG);
         mPollerThread = new Thread(SocketPoller.getInstance(), TAG);
