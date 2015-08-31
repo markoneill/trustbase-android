@@ -13,12 +13,15 @@ import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
  */
 public class LocalPluginHandler implements PluginInterface {
 
+    public LocalPluginHandler(LocalPlugin.LocalBinder bin)
+    {
+        boundPlugin = bin;
+    }
 
-
-    private PluginInterface boundPlugin;
+    private LocalPlugin.LocalBinder boundPlugin;
 
     @Override
     public POLICY_RESPONSE check(List<X509Certificate> cert_chain) {
-        return boundPlugin.check(cert_chain);
+        return boundPlugin.getService().check(cert_chain);
     }
 }

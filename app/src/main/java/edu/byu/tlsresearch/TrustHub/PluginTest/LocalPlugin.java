@@ -17,7 +17,7 @@ public abstract class LocalPlugin extends Service implements PluginInterface {
     private final IBinder mBinder = new LocalBinder();
 
     //Binder providing access to the LocalPlugin
-    private class LocalBinder extends Binder
+    public class LocalBinder extends Binder
     {
         LocalPlugin getService()
         {
