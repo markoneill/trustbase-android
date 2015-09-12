@@ -4,7 +4,6 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.security.cert.X509Certificate;
@@ -57,7 +56,6 @@ public class PolicyEngine extends Service
         return mInstance;
     }
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent)
     {
