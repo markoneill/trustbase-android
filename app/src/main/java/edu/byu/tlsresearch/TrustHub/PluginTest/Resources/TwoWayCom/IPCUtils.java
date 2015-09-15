@@ -12,6 +12,8 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
+
 /**
  * Created by ben on 8/11/15.
  * Contains methods for facilitating interprocess communication (IPC) for Android.
@@ -22,8 +24,9 @@ public class IPCUtils {
 
     /*
         Turns any Serializable object into a Bundle which can be passed via IPC.
+        EDIT: Allowed bundle to process any object.  Hopefully this will work with X509Certificates.
      */
-    public static Bundle bundle(Serializable obj)
+    public static Bundle bundle(Object obj)
     {
         ByteArrayOutputStream holder = new ByteArrayOutputStream();
         ObjectOutput out = null;
@@ -54,7 +57,6 @@ public class IPCUtils {
         }
 
         if(bytes != null) {
-            Log.d(TAG + " bundle", "Size of serialized array: " + bytes.length);
             Bundle b = new Bundle();
             b.putByteArray("data", bytes);
             return b;
@@ -69,7 +71,6 @@ public class IPCUtils {
     public static Object unbundle(Bundle b)
     {
         byte[] bytes = b.getByteArray("data");
-        Log.d(TAG + " unbundle", "Size of retrieved array: " + bytes.length);
         Object obj = null;
         ByteArrayInputStream holder = new ByteArrayInputStream(bytes);
         ObjectInput in = null;
@@ -99,6 +100,46 @@ public class IPCUtils {
         }
 
         return obj;
+    }
+
+    /*
+        Converts from POLICY_RESPONSE to int for IPC.
+     */
+    public static int PolicyResponseToInt(PluginInterface.POLICY_RESPONSE resp)
+    {
+        switch(resp)
+        {
+            case VALID:
+                return 0;
+            case INVALID:
+                return 1;
+            case VALID_PROXY:
+                return 2;
+            default:
+                //Invalid code. Return INVALID.
+                Log.e(TAG + " PR2Int", "Invalid POLICY_RESPONSE");
+                return 1;
+        }
+    }
+
+    /*
+        Converts from int to POLICY_RESPONSE for IPC.
+     */
+    public static PluginInterface.POLICY_RESPONSE IntToPolicyResponse(int code)
+    {
+        switch(code)
+        {
+            case 0:
+                return PluginInterface.POLICY_RESPONSE.VALID;
+            case 1:
+                return PluginInterface.POLICY_RESPONSE.INVALID;
+            case 2:
+                return PluginInterface.POLICY_RESPONSE.VALID_PROXY;
+            default:
+                //Invalid code.  Return INVALID.
+                Log.e(TAG + " Int2PR", "Invalid int code");
+                return PluginInterface.POLICY_RESPONSE.INVALID;
+        }
     }
 
 }
