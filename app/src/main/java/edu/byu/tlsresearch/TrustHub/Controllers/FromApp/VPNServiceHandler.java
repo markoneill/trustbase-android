@@ -4,34 +4,24 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.net.DhcpInfo;
 import android.net.VpnService;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
-import android.text.format.Formatter;
 import android.util.Log;
-import android.widget.TextView;
-
-import org.apache.http.conn.util.InetAddressUtils;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
+import edu.byu.tlsresearch.TrustHub.PluginTest.LocalPlugin;
+import edu.byu.tlsresearch.TrustHub.PluginTest.LocalPluginHandler;
 import edu.byu.tlsresearch.TrustHub.PluginTest.Plugins.TestPlugin;
+import edu.byu.tlsresearch.TrustHub.PluginTest.TrustHubPluginHandler;
 
 /**
  * Handles the VPNService
@@ -66,6 +56,26 @@ public class VPNServiceHandler extends VpnService implements Runnable
 
     //Plugin Test
     TestPlugin mTestPlugin = new TestPlugin();
+    TrustHubPluginHandler mTestRemotePlugin = null;
+    private ServiceConnection mRemoteTestPluginConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mTestRemotePlugin = new TrustHubPluginHandler(service);
+            Log.d(TAG, "Remote plugin connected");
+            if(mPolicyEngineBinder != null)
+                mPolicyEngineBinder.addPlugin(mTestRemotePlugin);
+            else
+                Log.e(TAG, "Could not add remote plugin to listeners");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mTestRemotePlugin = null;
+            Log.e(TAG, "Lost connection with Remote Plugin");
+        }
+
+    };
 
     private static VPNServiceHandler mInstance = null;
     public static String TAG = "VPNServiceHandler";
@@ -92,7 +102,14 @@ public class VPNServiceHandler extends VpnService implements Runnable
         Log.d(TAG, PolicyEngine.getInstance().toString());
         bindService(new Intent(this.getBaseContext(), PolicyEngine.class), mPolicyEngineConnection,
                 Context.BIND_AUTO_CREATE);
-        //TODO: Bind to plugins
+
+        //Bind to plugins
+        Intent iBound = new Intent();
+        iBound.setClassName("com.example.ben.remotetrusthubplugintest",
+                "com.example.ben.remotetrusthubplugintest.TestRemoteTrustHubPlugin");
+        Boolean fBound = bindService(iBound, mRemoteTestPluginConnection, Context.BIND_AUTO_CREATE);
+        Log.d(TAG, "fBound = " + fBound);
+        Log.i(TAG, "Sent binding calls to plugins");
 
         // Start a new session
         mInterfaceThread = new Thread(this, TAG);
