@@ -108,7 +108,7 @@ public abstract class TrustHubPlugin extends Service implements PluginInterface 
         }
 
         //Create message
-        Message ret = Message.obtain(null, com_ret, res);
+        Message ret = Message.obtain(null, com_ret, IPCUtils.PolicyResponseToInt(res), 0, null);
 
         //Send return message
         try {
