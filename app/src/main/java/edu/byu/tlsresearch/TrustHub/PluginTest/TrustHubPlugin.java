@@ -17,8 +17,8 @@ import edu.byu.tlsresearch.TrustHub.PluginTest.Resources.TwoWayCom.IPCUtils;
 
 /**
  * Created by ben on 8/20/15.
- * Abstract class that implements the plugin API and facilitates communication between the plugin and TrustHub.
- * Note: This class may not be necessary in the future.
+ * Abstract class that implements the plugin API and facilitates communication between the plugin
+ * and TrustHub.
  */
 public abstract class TrustHubPlugin extends Service implements PluginInterface {
 

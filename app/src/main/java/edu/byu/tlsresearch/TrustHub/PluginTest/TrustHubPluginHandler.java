@@ -60,7 +60,7 @@ public class TrustHubPluginHandler implements PluginInterface {
         }
     }
 
-    /*
+    /**
         Constructor.
         @param b_service    IBinder of the remote bound plugin
      */
@@ -69,16 +69,23 @@ public class TrustHubPluginHandler implements PluginInterface {
         mRequest = new Messenger(b_service);
     }
 
+    /*
+     * This function tells the remote plugin to run the check(List<X509Certificate>) command and
+     * returns the response to the policy engine.  Currently, this involves serializing the list of
+     * certificates to a byte array, putting that byte array into a bundle and sending it to the
+     * remote service.  This works for now, but X509Certificates don't implement Serializable in
+     * Android (although they do implement it in other Java implementations).  If this breaks in the
+     * future, that is probably why.
+     * Possible alternative: Write certificates to a shared file and sent file's URI to plugin.
+     */
     @Override
     public POLICY_RESPONSE check(List<X509Certificate> cert_chain) {
-        /*
-            TODO: Re-figure out how to send an X509Certificate to a remote process
-            Possible solution: Write certificates to a shared file and send URIs to plugins
-         */
         if(mRequest != null)
         {
             Message req = Message.obtain(null, CHECK_CERTIFICATES);   //Send a certificate check message
-            Bundle bd = IPCUtils.bundle(cert_chain);    //WHAAAAT!??  That's supposed to be Serializable.  This may have to be done differently.
+            Bundle bd = IPCUtils.bundle(cert_chain);    /*Convert certificates in to a bundle.
+                                                          This method appears to work but is not
+                                                          openly supported.*/
             req.setData(bd);    //Attach certificates to the request message
             req.replyTo = mResponse;    //Attach response messenger
 
