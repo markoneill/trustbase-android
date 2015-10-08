@@ -127,27 +127,19 @@ public class TLSHandshake
         try
         {
             int certsLength = (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
-            //Log.d("TLSHandshake", "certsLength: " + certsLength);
-            //Log.d("TLSHandshake", "buffer: " + buffer.toString());
             int certLength = 0;
             ArrayList<X509Certificate> toReturn = new ArrayList<X509Certificate>();
             CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
 
             for (int i = 0; i < certsLength; i += certLength + TLSHandshake.CERT_HEADER_LENGTH)
             {
-                //Log.d("TLSHandshake", "getLength");
-                //Log.d("TLSHandshake", buffer.toString());
                 certLength = (((buffer.get() & 0xFF) << 16) | ((buffer.get() & 0xFF) << 8) | (buffer.get() & 0xFF)) & 0xFFFFFF;
-                //Log.d("TLSHandshake", buffer.toString());
                 byte[] cert_bytes = new byte[certLength];
-                //Log.d("TLSHandshake", "certLength: " + certLength);
-                //Log.d("TLSHandshake", "buffer: " + buffer.toString());
                 buffer.get(cert_bytes);
                 InputStream in = new ByteArrayInputStream(cert_bytes);
                 X509Certificate toAdd = (X509Certificate) certFactory.generateCertificate(in);
                 toReturn.add(toAdd);
             }
-
             return toReturn;
         }
         catch (CertificateException e)

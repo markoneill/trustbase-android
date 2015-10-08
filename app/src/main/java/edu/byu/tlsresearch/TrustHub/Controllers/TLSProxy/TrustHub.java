@@ -80,7 +80,8 @@ public class TrustHub
         }
         return mInstance;
     }
-
+    private TrustHub()
+    {}
 
     public connection_state getState(Connection context)
     {
@@ -114,12 +115,10 @@ public class TrustHub
                     case PROXY:
                         byte[] proxySend = new byte[conState.sendBuffer.buffer.remaining()];
                         conState.sendBuffer.buffer.get(proxySend); // Get all the handshake data
-                        // i.e. ClientHello to proxy
                         try
                         {
                             conState.myProxy.send(proxySend);
-                        }
-                        catch (SSLException e)
+                        } catch (SSLException e)
                         {
                             Log.e(TAG, "Proxy Send failed: " + e.getMessage());
                         }
@@ -132,8 +131,7 @@ public class TrustHub
                         reallySend = toWrite;
                         break;
                 }
-            }
-            else
+            } else
             {
                 conState.sendBuffer.buffer.mark();
                 TLSState.handle(conState, conState.sendBuffer);
@@ -143,10 +141,9 @@ public class TrustHub
                 {
                     //Didn't get the whole clientHello yet so
                     //pretend we haven't gotten anything lolol
-                    Log.d(TAG, "Not whole ClientHello");
                     conState.sendBuffer.curState = TLSState.tls_state.UNKNOWN;
-                }
-                else
+                    conState.sendBuffer.toRead = 1;
+                } else
                 {
                     reallySend = new byte[conState.sendBuffer.buffer.remaining()];
                     conState.sendBuffer.buffer.mark(); // Want to save ClientHello
@@ -155,8 +152,7 @@ public class TrustHub
                 }
             }
             conState.sendBuffer.buffer.compact();
-        }
-        else
+        } else
         {
             reallySend = toWrite;
         }
@@ -168,23 +164,24 @@ public class TrustHub
 
     public void proxyIn(byte[] packet, SelectionKey key)
     {
-        //Log.d(TAG, "IN");
+        // Get connection Info
         Connection conn = ((TCPChannel) key.attachment()).getmContext();
         connection_state conState = getState(conn);
+
         byte[] reallyReceive = null;
-        //Log.d(TAG, conState.recvBuffer.curState.toString());
-        //Log.d(TAG, conState.proxyState.toString());
-        if (conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT)
+        if (conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it tls?
         {
-            //Log.d(TAG, "Cleared: " + conState.recvBuffer.buffer.toString());
-            //Log.d(TAG, "Need room for: " + packet.length);
+            // Add packet to queue
             conState.recvBuffer.buffer.put(packet);
             conState.recvBuffer.buffer.flip();
+            // If server hasn't finished handshake
             if (conState.recvBuffer.curState != TLSState.tls_state.SERVER_HELLO_DONE_SENT)
             {
-                //Don't want the client to know anything until we have it all
+                // Don't want the client to know anything until we have it all
                 conState.recvBuffer.buffer.mark();
+                // update the state
                 TLSState.handle(conState, conState.recvBuffer);
+                // revert back to where we were
                 conState.recvBuffer.buffer.reset();
             }
             // TLSState.handle could've changed us to this state
@@ -206,40 +203,32 @@ public class TrustHub
                         {
                             try
                             {
-                                //Log.d(TAG, "Start proxy: " + conState.hostname);
                                 // Dump the Server responses and restart the connection
                                 // We compact at end so just set to limit
                                 conState.recvBuffer.buffer.position(conState.recvBuffer.buffer.limit());
-                                //Log.d(TAG, "Cleared: " + conState.recvBuffer.buffer.toString());
-                                //Log.d(TAG, key.toString());
                                 key = ((TCPChannel) key.attachment()).replaceChannel();
-                                //Log.d(TAG, key.toString());
                                 // Start of proxying
                                 conState.startProxy(key);
+                                // Send the client Hello
                                 conState.sendBuffer.buffer.flip();
                                 byte[] clientHello = new byte[conState.sendBuffer.buffer.remaining()];
                                 conState.sendBuffer.buffer.get(clientHello);
                                 conState.sendBuffer.buffer.compact();
-                                // Log.d(TAG, "Sending Client Hello");
                                 conState.myProxy.send(clientHello);
                                 conState.myProxy.receive(new byte[0]); //Kickstart the proxy
-                            }
-                            catch (SSLException e)
+                            } catch (SSLException e)
                             {
                                 Log.e(TAG, "Send clientHello failed: " + e.getMessage());
                                 e.printStackTrace();
-                            }
-                            catch (IOException e)
+                            } catch (IOException e)
                             {
                                 Log.e(TAG, "Unable to open new socket: " + e.getMessage());
-                            }
-                            catch (Exception e)
+                            } catch (Exception e)
                             {
                                 Log.e(TAG, "Proxy failed: " + e.getMessage());
                                 e.printStackTrace();
                             }
-                        }
-                        else
+                        } else
                         {
                             byte[] proxyReceive = new byte[conState.recvBuffer.buffer.remaining()];
                             conState.recvBuffer.buffer.get(proxyReceive); // Get all the handshake data
@@ -247,8 +236,7 @@ public class TrustHub
                             try
                             {
                                 conState.myProxy.receive(proxyReceive);
-                            }
-                            catch (SSLException e)
+                            } catch (SSLException e)
                             {
                                 Log.e(TAG, "Proxy Receive failed: " + e.getMessage());
                                 e.printStackTrace();
@@ -264,24 +252,22 @@ public class TrustHub
                         Log.e(TAG, "Policy Engine should've made a decision");
                         break;
                 }
-            }
-            else
+            } else
             {
                 if (conState.recvBuffer.curState == TLSState.tls_state.IRRELEVANT)
                 {
                     reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
                     conState.recvBuffer.buffer.get(reallyReceive);
                     //TODO delete buffer?
-                }
-                else
+                } else
                 {
                     //Haven't got it all yet so wait
                     conState.recvBuffer.curState = TLSState.tls_state.UNKNOWN;
+                    conState.recvBuffer.toRead = 1;
                 }
             }
             conState.recvBuffer.buffer.compact();
-        }
-        else
+        } else
         {
             reallyReceive = packet;
         }

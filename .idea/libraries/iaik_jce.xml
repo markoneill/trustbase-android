@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="iaik_jce">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/app/libs/iaik_jce.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

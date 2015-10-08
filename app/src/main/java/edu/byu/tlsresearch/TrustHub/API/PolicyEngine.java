@@ -33,7 +33,6 @@ public class PolicyEngine extends Service
     /*@Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
-        Log.d(TAG, "Queried");
         mListeners = new ConcurrentLinkedQueue<PluginInterface>();
         mInstance = this;
         return START_STICKY;
@@ -101,7 +100,6 @@ public class PolicyEngine extends Service
             }
         }
         executor.shutdown();
-        Log.d(TAG, "Queried");
         return toReturn;
     }
 
