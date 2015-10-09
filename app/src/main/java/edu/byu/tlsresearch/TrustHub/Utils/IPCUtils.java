@@ -1,4 +1,4 @@
-package edu.byu.tlsresearch.TrustHub.PluginTest.Resources.TwoWayCom;
+package edu.byu.tlsresearch.TrustHub.Utils;
 
 import android.os.Bundle;
 import android.util.Log;

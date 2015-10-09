@@ -86,6 +86,8 @@ public class PolicyEngine extends Service
             Future<PluginInterface.POLICY_RESPONSE> future = executor.submit(task);
             try
             {
+                //Put decision making logic here
+                //If there are no plugins, return VALID
                 toReturn = future.get(timeout, TimeUnit.MILLISECONDS);
             }
             catch (InterruptedException e)

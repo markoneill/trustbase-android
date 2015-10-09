@@ -12,7 +12,7 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 
 import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
-import edu.byu.tlsresearch.TrustHub.PluginTest.Resources.TwoWayCom.IPCUtils;
+import edu.byu.tlsresearch.TrustHub.Utils.IPCUtils;
 
 /**
  * Created by ben on 9/11/15.
