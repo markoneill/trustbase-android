@@ -37,8 +37,15 @@ public class TCPChannel implements IChannelListener
                 mContext.getDestPort());
         SocketChannel socket = SocketChannel.open();
         VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
-        socket.connect(toConnect);
         mChannelKey = SocketPoller.getInstance().registerChannel(socket, mContext, this);
+        if(!socket.connect(toConnect))
+        {
+            mChannelKey.interestOps(SelectionKey.OP_CONNECT);
+        }
+        else
+        {
+            mChannelKey.interestOps(SelectionKey.OP_READ);
+        }
         mState = TCBState.START;
     }
 
@@ -55,6 +62,14 @@ public class TCPChannel implements IChannelListener
         return mChannelKey;
     }
 
+    public void send(byte[] transport)
+    {
+        synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
+        {
+            this.mState.send(this, transport);
+        }
+    }
+
     @Override
     public void receive(byte[] payload)
     {
@@ -63,6 +78,7 @@ public class TCPChannel implements IChannelListener
 
     public void receive(byte[] payload, int flags)
     {
+        flags |= TCPHeader.PSH | TCPHeader.ACK;
         if (payload == null) // Listeners in communicator can do NULL then nothing will be sent back
             return;
         synchronized (this) //SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
@@ -71,17 +87,6 @@ public class TCPChannel implements IChannelListener
             this.toSEQ += payload.length;
             if (payload.length == 0 && (flags & TCPHeader.FIN) != 0)
                 this.toSEQ += 1;
-        }
-    }
-
-    @Override
-    public void readFinish()
-    {
-        synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly increment it
-        {
-            TCPController.receive(new byte[0], this, TCPHeader.FIN); //TODO timeout to close the connection
-            this.toSEQ += 1;
-            this.mState = TCBState.FIN_WAIT1;
         }
     }
 
@@ -96,6 +101,25 @@ public class TCPChannel implements IChannelListener
     }
 
     @Override
+    public void readFinish()
+    {
+        synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly increment it
+        {
+            TCPController.receive(new byte[0], this, TCPHeader.FIN);
+            this.toSEQ += 1;
+            if(this.mState == TCBState.CLOSE_WAIT)
+            {
+                //ended
+                this.close();
+            }
+            else
+            {
+                this.mState = TCBState.FIN_WAIT1;
+            }
+        }
+    }
+
+    @Override
     public void writeFinish()
     {
         synchronized (this)
@@ -105,13 +129,6 @@ public class TCPChannel implements IChannelListener
         }
     }
 
-    public void send(byte[] transport)
-    {
-        synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
-        {
-            this.mState.send(this, transport);
-        }
-    }
 
     public SelectionKey getmChannelKey()
     {

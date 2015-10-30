@@ -80,8 +80,8 @@ public class TrustHub
         }
         return mInstance;
     }
-    private TrustHub()
-    {}
+
+    private TrustHub() {}
 
     public connection_state getState(Connection context)
     {
@@ -92,8 +92,17 @@ public class TrustHub
         return mStates.get(context);
     }
 
-    public void proxyOut(byte[] toWrite, SelectionKey key)
+    public void close(SelectionKey key)
     {
+        mStates.remove(((TCPChannel)key.attachment()).getmContext());
+    }
+
+    public byte[] proxyOut(byte[] toWrite, SelectionKey key)
+    {
+        if(!(key.attachment() instanceof TCPChannel))
+        {
+            return toWrite;
+        }
         Connection conn = ((TCPChannel) key.attachment()).getmContext();
         connection_state conState = getState(conn);
         byte[] reallySend = null;
@@ -152,18 +161,20 @@ public class TrustHub
                 }
             }
             conState.sendBuffer.buffer.compact();
-        } else
+        }
+        else
         {
             reallySend = toWrite;
         }
-        if (reallySend != null)
-        {
-            SocketPoller.getInstance().noProxySend(key, reallySend);
-        }
+        return reallySend;
     }
 
-    public void proxyIn(byte[] packet, SelectionKey key)
+    public byte[] proxyIn(byte[] packet, SelectionKey key)
     {
+        if(!(key.attachment() instanceof TCPChannel))
+        {
+            return packet;
+        }
         // Get connection Info
         Connection conn = ((TCPChannel) key.attachment()).getmContext();
         connection_state conState = getState(conn);
@@ -271,10 +282,7 @@ public class TrustHub
         {
             reallyReceive = packet;
         }
-        if (reallyReceive != null)
-        {
-            ((IChannelListener) key.attachment()).receive(reallyReceive);
-        }
+        return reallyReceive;
     }
 
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();

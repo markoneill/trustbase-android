@@ -43,6 +43,7 @@ public enum TCBState implements ITCBState
                             }
                             context.receive(new byte[0], flagsToSend);
                         }
+                        context.close();
                     }
 //                        case TCPHeader.ACK:
 //                            // Connection set before we started
@@ -78,7 +79,7 @@ public enum TCBState implements ITCBState
                     {
                         // Make sure to ACK the FIN (may have already been ACKed)
                         context.receive(new byte[0], TCPHeader.ACK);
-                        context.receive(new byte[0], TCPHeader.FIN);
+                        //context.receive(new byte[0], TCPHeader.FIN);
                         context.setmState(TCBState.CLOSE_WAIT);
                     }
                 }
@@ -112,7 +113,7 @@ public enum TCBState implements ITCBState
             };
 
     @Override
-    public void send(TCPChannel context, byte[] transport)
+    public void send(TCPChannel context, byte[] transport) // Here just to provide default overrid enum shoudl handle all cases
     {
         Log.d("TCPSTate", "flags: " + TCPHeader.getFlags(transport) + " state: " + context.getmState());
     }
@@ -133,7 +134,12 @@ public enum TCBState implements ITCBState
             // tcp will guarentee it's delivery
 
             context.receive(new byte[0], TCPHeader.ACK);
-            SocketPoller.getInstance().proxySend(context.getmChannelKey(), payload);
+            //byte[] toSend = TrustHub.getInstance().proxyOut(payload, context.getmChannelKey());
+            byte[] toSend = payload;
+            if(toSend != null)
+            {
+                SocketPoller.getInstance().send(context.getmChannelKey(), toSend);
+            }
         }
     }
 }

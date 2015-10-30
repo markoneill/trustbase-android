@@ -126,7 +126,7 @@ public class SSLProxy
             //Log.d(TAG, "ServerSide Send");
             byte[] toSend = new byte[toNetwork.remaining()];
             toNetwork.get(toSend);
-            SocketPoller.getInstance().noProxySend(mKey, toSend);
+            SocketPoller.getInstance().send(mKey, toSend);
         }
         toApp.clear();
         toNetwork.clear();
