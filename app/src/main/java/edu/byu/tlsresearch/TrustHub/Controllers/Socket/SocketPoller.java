@@ -77,8 +77,9 @@ public class SocketPoller implements Runnable
 
     public void send(SelectionKey key, byte[] toWrite)
     {
-        // TODO: syncronize reads and writes to this buffer
+        Log.d(TAG, "SENDING");
         TrustHub.getInstance().proxyOut(toWrite, key);
+        Log.d(TAG, "SENT");
     }
 
     private void noProxyReceive (SelectionKey key, ByteBuffer packet, int length)
@@ -110,6 +111,7 @@ public class SocketPoller implements Runnable
 
     public SelectionKey registerChannel(SelectableChannel toRegister, Connection con, IChannelListener writeBack)
     {
+        Log.d(TAG, "New connection");
         SelectionKey toAdd;
         try
         {
@@ -132,8 +134,8 @@ public class SocketPoller implements Runnable
 
     public boolean close(SelectionKey key)
     {
-        Log.d(TAG, "READ " + SelectionKey.OP_READ + " Write: " + SelectionKey.OP_WRITE + " Connecti: " + SelectionKey.OP_CONNECT + " Accept: " + SelectionKey.OP_ACCEPT);
-        Log.d(TAG, key.toString() + " closing " + key.interestOps());
+        //Log.d(TAG, "READ " + SelectionKey.OP_READ + " Write: " + SelectionKey.OP_WRITE + " Connecti: " + SelectionKey.OP_CONNECT + " Accept: " + SelectionKey.OP_ACCEPT);
+        //Log.d(TAG, key.toString() + " closing " + key.interestOps());
 //        try
 //        {
 //            throw new Exception();
@@ -177,9 +179,13 @@ public class SocketPoller implements Runnable
         {
             try
             {
+
+               // Log.d(TAG, "Start Polling");
                 if (mEpoll.select() > 0)
                 {
-                    Log.d(TAG, ""+mWriteQueue.size());
+
+                   // Log.d(TAG, "End Polling");
+                    //Log.d(TAG, ""+mWriteQueue.size());
                     synchronized (this)
                     {
                     } // used to stop this from blocking immediately when wakeup from register is called
@@ -189,7 +195,6 @@ public class SocketPoller implements Runnable
                     {
                         SelectionKey key = keyIterator.next();
                         // READ FROM SOCKET
-                        Log.d(TAG, key.toString() +  " Polling");
                         if(key.isConnectable())
                         {
                             ((SocketChannel)key.channel()).finishConnect();
@@ -230,13 +235,10 @@ public class SocketPoller implements Runnable
         {
             if (key.channel() instanceof SocketChannel)
             {
-                Log.d(TAG, key.toString() + " to channel");
                 length = ((SocketChannel) key.channel()).read(packet);
-                Log.d(TAG, key.toString() + " from channel");
             }
             else if (key.channel() instanceof DatagramChannel)
             {
-
                 InetSocketAddress from =(InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
                 ((UDPChannel) key.attachment()).setSend(from.getAddress().toString().replace("/", ""), from.getPort());
                 length = packet.position();
@@ -248,7 +250,6 @@ public class SocketPoller implements Runnable
             }
             if (length == -1)
             {
-                Log.d(TAG, key.toString() + " readfinish");
                 key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
                 ((IChannelListener) key.attachment()).readFinish();
             }
@@ -262,7 +263,6 @@ public class SocketPoller implements Runnable
             ((IChannelListener) key.attachment()).close();
         }
         length = 0;
-        Log.d(TAG, key.toString() + " readed");
     }
 
     private void handleWrite(SelectionKey key) throws IOException
@@ -283,6 +283,7 @@ public class SocketPoller implements Runnable
                     if (key.channel() instanceof SocketChannel)
                     {
                         ((SocketChannel) key.channel()).write(writer);
+                        ((SocketChannel) key.channel()).socket().getOutputStream().flush();
                     } else if (key.channel() instanceof DatagramChannel)
                     {
                         UDPChannel attachment = (UDPChannel) key.attachment();

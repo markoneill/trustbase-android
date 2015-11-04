@@ -88,7 +88,6 @@ public class TLSState
         }
         else
         {
-            Log.d("TLSState", "Not TLS Handshake");
             buf.curState = tls_state.IRRELEVANT;
             buf.toRead = 0;
         }
@@ -108,7 +107,6 @@ public class TLSState
                 buf.toRead = tls_record_length;
                 break;
             default:
-                Log.d("TLSState", "Not Handshake Message ignoring connection");
                 buf.curState = tls_state.IRRELEVANT;
                 buf.toRead = 0;
                 break;

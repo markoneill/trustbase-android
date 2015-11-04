@@ -127,8 +127,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
             }
             catch (IOException e)
             {
-                e.printStackTrace();
-                Log.e(TAG, "Error reading from interface " + e);
+                Log.e(TAG, "Error reading from interface");
             }
 
             if (length > 0)
@@ -138,7 +137,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
                 packet.get(toPacket);
                 IPController.send(toPacket);
             }
-            // TODO: don't want busy loop should be blocking on appIn read
+            // TODO: don't want busy loop
         }
     }
 

@@ -8,6 +8,7 @@ import java.nio.channels.SocketChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.IChannelListener;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
+import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub;
 import edu.byu.tlsresearch.TrustHub.Controllers.TransportLayer.TCPController;
 import edu.byu.tlsresearch.TrustHub.Utils.TCPHeader;
 import edu.byu.tlsresearch.TrustHub.model.Connection;
@@ -36,8 +37,10 @@ public class TCPChannel implements IChannelListener
         InetSocketAddress toConnect = new InetSocketAddress(mContext.getDestIP(),
                 mContext.getDestPort());
         SocketChannel socket = SocketChannel.open();
+        socket.socket().setTcpNoDelay(true);
         VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
         mChannelKey = SocketPoller.getInstance().registerChannel(socket, mContext, this);
+
         if(!socket.connect(toConnect))
         {
             mChannelKey.interestOps(SelectionKey.OP_CONNECT);
@@ -97,6 +100,7 @@ public class TCPChannel implements IChannelListener
         {
             TCPController.remove(this.getmContext());
             SocketPoller.getInstance().close(this.getmChannelKey());
+            TrustHub.getInstance().close(this.getmChannelKey());
         }
     }
 

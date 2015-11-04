@@ -77,7 +77,7 @@ public class PolicyEngine extends Service
         ExecutorService executor = Executors.newCachedThreadPool();
         final Iterator iterator = mListeners.iterator();
         int timeout = 6000;
-        PluginInterface.POLICY_RESPONSE toReturn = PluginInterface.POLICY_RESPONSE.VALID_PROXY; //TODO: Valid because we just let the default CA system take a look
+        PluginInterface.POLICY_RESPONSE toReturn = PluginInterface.POLICY_RESPONSE.VALID; //TODO: Valid because we just let the default CA system take a look
         while (iterator.hasNext())
         {
             myTask task = new myTask((PluginInterface) iterator.next(), cert_chain);

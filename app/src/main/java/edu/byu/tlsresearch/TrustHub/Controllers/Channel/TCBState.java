@@ -16,7 +16,7 @@ public enum TCBState implements ITCBState
                 public void send(TCPChannel context, byte[] transport)
                 {
                     int flags = TCPHeader.getFlags(transport);
-                    Log.d("TCBState", "Flags: " + flags);
+                    //Log.d("TCBState", "Flags: " + flags);
                     if (flags == TCPHeader.SYN)
                     {
                         context.setSEQ((long) Math.random());
