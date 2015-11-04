@@ -1,12 +1,8 @@
 package edu.byu.tlsresearch.TrustHub.Controllers.FromApp;
 
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.net.VpnService;
 import android.os.Build;
-import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -15,13 +11,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import edu.byu.tlsresearch.TrustHub.API.PolicyEngine;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
-import edu.byu.tlsresearch.TrustHub.PluginTest.LocalPlugin;
-import edu.byu.tlsresearch.TrustHub.PluginTest.LocalPluginHandler;
-import edu.byu.tlsresearch.TrustHub.PluginTest.Plugins.TestPlugin;
-import edu.byu.tlsresearch.TrustHub.PluginTest.TrustHubPluginHandler;
 
 /**
  * Handles the VPNService
@@ -35,47 +26,6 @@ public class VPNServiceHandler extends VpnService implements Runnable
     private Thread mPollerThread;
     private ParcelFileDescriptor mInterface;
     private FileOutputStream mAppOut;
-
-    private PolicyEngine.PluginBinder mPolicyEngineBinder = null;
-    private ServiceConnection mPolicyEngineConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mPolicyEngineBinder = (PolicyEngine.PluginBinder) service;
-            Log.d(TAG, "PolicyEngine connected");
-            //Wait for binding return call before adding plugins
-            mPolicyEngineBinder.addPlugin(mTestPlugin);
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mPolicyEngineBinder = null;
-            Log.e(TAG, "Lost connection with PolicyEngine");
-        }
-    } ;
-
-    //Plugin Test
-    TestPlugin mTestPlugin = new TestPlugin();
-    TrustHubPluginHandler mTestRemotePlugin = null;
-    private ServiceConnection mRemoteTestPluginConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mTestRemotePlugin = new TrustHubPluginHandler(service);
-            Log.d(TAG, "Remote plugin connected");
-            if(mPolicyEngineBinder != null)
-                mPolicyEngineBinder.addPlugin(mTestRemotePlugin);
-            else
-                Log.e(TAG, "Could not add remote plugin to listeners");
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mTestRemotePlugin = null;
-            Log.e(TAG, "Lost connection with Remote Plugin");
-        }
-
-    };
 
     private static VPNServiceHandler mInstance = null;
     public static String TAG = "VPNServiceHandler";
@@ -98,18 +48,6 @@ public class VPNServiceHandler extends VpnService implements Runnable
         {
             mInterfaceThread.interrupt();
         }
-        //Bind to PolicyEngine
-        Log.d(TAG, PolicyEngine.getInstance().toString());
-        bindService(new Intent(this.getBaseContext(), PolicyEngine.class), mPolicyEngineConnection,
-                Context.BIND_AUTO_CREATE);
-
-        //Bind to plugins
-        Intent iBound = new Intent();
-        iBound.setClassName("com.example.ben.remotetrusthubplugintest",
-                "com.example.ben.remotetrusthubplugintest.TestRemoteTrustHubPlugin");
-        Boolean fBound = bindService(iBound, mRemoteTestPluginConnection, Context.BIND_AUTO_CREATE);
-        Log.d(TAG, "fBound = " + fBound);
-        Log.i(TAG, "Sent binding calls to plugins");
 
         // Start a new session
         mInterfaceThread = new Thread(this, TAG);
@@ -227,7 +165,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
 
     private void end()
     {
-        PolicyEngine.getInstance().stopService(new Intent());
+        //PolicyEngine.getInstance().stopService(new Intent());
         if (mInterfaceThread != null)
         {
             mInterfaceThread.interrupt(); //stop the thread
