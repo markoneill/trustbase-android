@@ -10,6 +10,7 @@ import android.view.MenuItem;
 import android.view.View;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler;
+import edu.byu.tlsresearch.TrustHub.PluginTest.PluginManager;
 import edu.byu.tlsresearch.TrustHub.Utils.CertSpoofer;
 
 
@@ -64,6 +65,7 @@ public class Main extends AppCompatActivity implements View.OnClickListener
         {
             onActivityResult(0, Activity.RESULT_OK, null);
         }
+        startService(new Intent(this.getBaseContext(), PluginManager.class));
     }
 
     @Override
