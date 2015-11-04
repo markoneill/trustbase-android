@@ -10,6 +10,7 @@ import android.util.Log;
 
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.concurrent.SynchronousQueue;
 
 import edu.byu.tlsresearch.TrustHub.API.PluginInterface;
 import edu.byu.tlsresearch.TrustHub.Utils.IPCUtils;
@@ -29,6 +30,7 @@ public class TrustHubPluginHandler implements PluginInterface {
     private Messenger mRequest = null;
     private Messenger mResponse = new Messenger(new ResponseHandler());
     private POLICY_RESPONSE check_result = null;    //Holds return value received from bound plugin.
+    private SynchronousQueue<POLICY_RESPONSE> result;
 
     //Handles responses from bound TrustHubPlugin
     private class ResponseHandler extends Handler {
@@ -41,11 +43,17 @@ public class TrustHubPluginHandler implements PluginInterface {
                 case 0:     //Communication OK
                     try {
                         POLICY_RESPONSE resp = IPCUtils.IntToPolicyResponse(msg.arg1);   //Cast returned data
+                        Log.d(TAG, "Response received: " + msg.arg1);
+                        boolean result_result;
+                        result_result = result.offer(resp);
+                        if(!result_result)
+                            Log.e(TAG, "Result not offered");
                         setResult(resp);    //Set data so that check function returns
                     }
                     catch(ClassCastException e) //Throw error if msg has invalid POLICY_RESPONSE
                     {
                         Log.e(TAG, "Invalid response: Bad POLICY_RESPONSE");
+                        result.add(null);
                         resetResult();  //Make the Policy Engine time out.  This functionality may be changed in the future.
                     }
                     break;
@@ -98,26 +106,32 @@ public class TrustHubPluginHandler implements PluginInterface {
                 Log.e(TAG, "Error sending check certificate request");
             }
 
-            //TODO: Put timeout in this plugin or in Policy Engine?
-            //Start timeout counter.  This functionality may be moved to the Policy Engine
-            long start_time = System.currentTimeMillis();
+            POLICY_RESPONSE p = result.poll();
 
-            Log.d(TAG, "Entering response loop");
+            Log.d(TAG, "Result passed through queue: " + IPCUtils.PolicyResponseToInt(p));
 
-            //Wait for the Response Handler to respond or 5 seconds
-            while(System.currentTimeMillis() < start_time + 5000)
-            {
-                if(check_result != null)
-                {
-                    Log.d(TAG, "Response received by loop");
-                    POLICY_RESPONSE result = check_result;
-                    resetResult();
-                    return result;
-                }
-            }
+            return p;
 
-            Log.d(TAG, "Loop timed out");
-            return null;
+//            //TODO: Put timeout in this plugin or in Policy Engine?
+//            //Start timeout counter.  This functionality may be moved to the Policy Engine
+//            long start_time = System.currentTimeMillis();
+//
+//            //Log.d(TAG, "Entering response loop");
+//
+//            //Wait for the Response Handler to respond or 5 seconds
+//            while(System.currentTimeMillis() < start_time + 5000)
+//            {
+//                if(check_result != null)
+//                {
+//                    //Log.d(TAG, "Response received by loop");
+//                    POLICY_RESPONSE result = check_result;
+//                    resetResult();
+//                    return result;
+//                }
+//            }
+//
+//            Log.d(TAG, "Loop timed out");
+//            return null;
         }
         else {
             //Plugin not bound return null
