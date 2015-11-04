@@ -35,6 +35,7 @@ public class UDPChannel implements IChannelListener
             socket.socket().bind(null);
             VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
             setmChannelKey(SocketPoller.getInstance().registerChannel(socket, context, this));
+            mChannelKey.interestOps(SelectionKey.OP_READ);
         }
         catch (IOException e)
         {
@@ -45,7 +46,7 @@ public class UDPChannel implements IChannelListener
     public void send(Connection context, byte[] packet)
     {
         this.setSend(context.getDestIP(), context.getDestPort());
-        SocketPoller.getInstance().noProxySend(mChannelKey, UDPController.stripHeaders(packet));
+        SocketPoller.getInstance().send(mChannelKey, UDPController.stripHeaders(packet));
         mUsedRecently = System.currentTimeMillis();
     }
 

@@ -17,8 +17,10 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.UDPChannel;
@@ -32,7 +34,7 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 public class SocketPoller implements Runnable
 {
-    private Map<SelectionKey, List<byte[]>> mToWrite;
+    private Map<SelectionKey, Queue<byte[]>> mWriteQueue;
     private Selector mEpoll;
     public static String TAG = "SocketPoller";
 
@@ -57,23 +59,37 @@ public class SocketPoller implements Runnable
     private SocketPoller() throws IOException
     {
         mEpoll = Selector.open();
-        mToWrite = new ConcurrentHashMap<SelectionKey, List<byte[]>>();
-    }
-
-    public void proxySend(SelectionKey key, byte[] toWrite)
-    {
-        TrustHub.getInstance().proxyOut(toWrite, key);
+        mWriteQueue = new ConcurrentHashMap<SelectionKey, Queue<byte[]>>();
     }
 
     public void noProxySend(SelectionKey key, byte[] toWrite)
     {
         // TODO: syncronize reads and writes to this buffer
-        //Log.d(TAG, "NoProxySend");
-        //Log.d(TAG, TrustHub.bytesToHex(toWrite));
-        synchronized (this)
+        if(toWrite != null)
         {
-            mToWrite.get(key).add(toWrite);
-            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+            synchronized (this)
+            {
+                mWriteQueue.get(key).add(toWrite);
+                key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+            }
+        }
+    }
+
+    public void send(SelectionKey key, byte[] toWrite)
+    {
+        Log.d(TAG, "SENDING");
+        TrustHub.getInstance().proxyOut(toWrite, key);
+        Log.d(TAG, "SENT");
+    }
+
+    private void noProxyReceive (SelectionKey key, ByteBuffer packet, int length)
+    {
+        byte[] toRead = new byte[packet.remaining()];
+        packet.get(toRead);
+        if(toRead == null)
+        {
+            ((IChannelListener) key.attachment()).receive(toRead);
+            packet.clear();
         }
     }
 
@@ -95,6 +111,7 @@ public class SocketPoller implements Runnable
 
     public SelectionKey registerChannel(SelectableChannel toRegister, Connection con, IChannelListener writeBack)
     {
+        Log.d(TAG, "New connection");
         SelectionKey toAdd;
         try
         {
@@ -102,26 +119,42 @@ public class SocketPoller implements Runnable
             synchronized (this)
             {
                 mEpoll.wakeup();
-                toAdd = toRegister.register(mEpoll, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                toAdd = toRegister.register(mEpoll, 0);
                 toAdd.attach(writeBack);
-                mToWrite.put(toAdd, new ArrayList<byte[]>());
+                mWriteQueue.put(toAdd, new LinkedBlockingQueue<byte[]>());
             }
             return toAdd;
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             return null;
         }
     }
 
     public boolean close(SelectionKey key)
     {
+        //Log.d(TAG, "READ " + SelectionKey.OP_READ + " Write: " + SelectionKey.OP_WRITE + " Connecti: " + SelectionKey.OP_CONNECT + " Accept: " + SelectionKey.OP_ACCEPT);
+        //Log.d(TAG, key.toString() + " closing " + key.interestOps());
+//        try
+//        {
+//            throw new Exception();
+//        }
+//        catch(Exception e)
+//        {
+//            e.printStackTrace();
+//        }
+        if (key.interestOps() != 0)
+            return false;
         if (key.isValid())
         {
-            key.interestOps(0);
-            key.cancel();
+            synchronized (this)
+            {
+                key.interestOps(0);
+                key.cancel();
+            }
         }
-        mToWrite.remove(key);
+        mWriteQueue.remove(key);
         try
         {
             key.channel().close();
@@ -146,8 +179,13 @@ public class SocketPoller implements Runnable
         {
             try
             {
-                if (mEpoll.select() != 1)
+
+               // Log.d(TAG, "Start Polling");
+                if (mEpoll.select() > 0)
                 {
+
+                   // Log.d(TAG, "End Polling");
+                    //Log.d(TAG, ""+mWriteQueue.size());
                     synchronized (this)
                     {
                     } // used to stop this from blocking immediately when wakeup from register is called
@@ -157,60 +195,27 @@ public class SocketPoller implements Runnable
                     {
                         SelectionKey key = keyIterator.next();
                         // READ FROM SOCKET
-                        if (!key.isValid())
-                            continue;
-                        if (key.isReadable())
+                        if(key.isConnectable())
                         {
-                            packet.clear();
-                            try
-                            {
-                                if (key.channel() instanceof SocketChannel)
-                                {
-                                    length = ((SocketChannel) key.channel()).read(packet);
-                                }
-                                else if (key.channel() instanceof DatagramChannel)
-                                {
-
-                                    InetSocketAddress from = (InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
-                                    ((UDPChannel) key.attachment()).setSend(from.getAddress().toString().replace("/", ""), from.getPort());
-                                    length = packet.position();
-                                    //Log.d("UDP", "Received: " + length);
-                                }
-                                if (length > 0)
-                                {
-                                    packet.flip();
-                                    if(key.attachment() instanceof TCPChannel)
-                                    {
-                                        proxyRead(key, packet, length);
-                                    }
-                                    else
-                                    {
-                                        noProxyRead(key, packet, length);
-                                    }
-                                }
-                                if (length == -1)
-                                {
-                                    key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
-                                    ((IChannelListener) key.attachment()).readFinish();
-                                }
-                            }
-                            catch (ClosedChannelException e)
-                            {
-                                ((IChannelListener) key.attachment()).close();
-                            }
-                            catch (SocketException e)
-                            {
-                                ((IChannelListener) key.attachment()).close();
-                            }
-                            length = 0;
+                            ((SocketChannel)key.channel()).finishConnect();
+                            key.interestOps((key.interestOps() | SelectionKey.OP_READ) & ~SelectionKey.OP_CONNECT);
                         }
-                        // WRITE TO SOCKET
+                        else if (key.isReadable())
+                        {
+                            handleRead(key);
+                        }
                         else if (key.isWritable())
                         {
                             handleWrite(key);
                         }
                         keyIterator.remove();
                     }
+                }
+                else
+                {
+                    synchronized (this)
+                    {
+                    } // used to stop this from blocking immediately when wakeup from register is called
                 }
             }
             catch (IOException e)
@@ -221,64 +226,77 @@ public class SocketPoller implements Runnable
         }
     }
 
-    private void handleWrite(SelectionKey key) throws IOException
+    private void handleRead(SelectionKey key) throws IOException
     {
-        //TODO This errors sometimes withh null object reference
-        // I think it is perhaps running out of memory and I can't make a new one
-        if (!mToWrite.get(key).isEmpty()) //TODO: switch this back to while?
+        Log.d(TAG, key.toString() + " Reading");
+        ByteBuffer packet = ByteBuffer.allocate(32767);
+        int length = 0;
+        try
         {
-            byte[] toWrite = mToWrite.get(key).get(0);
-            ByteBuffer writer = ByteBuffer.wrap(new byte[toWrite.length]);
-            writer.put(toWrite);
-            writer.flip();
-            int totalWrote = 0;
             if (key.channel() instanceof SocketChannel)
             {
-                try
-                {
-                    totalWrote = ((SocketChannel) key.channel()).write(writer);
-                }
-                catch (SocketException e)
-                {
-                    key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-                    ((IChannelListener) key.attachment()).writeFinish();
-                    return;
-                }
+                length = ((SocketChannel) key.channel()).read(packet);
             }
             else if (key.channel() instanceof DatagramChannel)
             {
-                try
-                {
-                    UDPChannel attachment = (UDPChannel) key.attachment();
-                    InetSocketAddress toSend = new InetSocketAddress(attachment.getmContext().getDestIP(),
-                            attachment.getmContext().getDestPort());
-                    totalWrote = ((DatagramChannel) key.channel()).send(writer, toSend);
-                    ((UDPChannel) key.attachment()).setRecentlyUsed(System.currentTimeMillis());
-                }
-                catch (IOException e)
-                {
-                    //continue;
-                }
+                InetSocketAddress from =(InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
+                ((UDPChannel) key.attachment()).setSend(from.getAddress().toString().replace("/", ""), from.getPort());
+                length = packet.position();
             }
-            if (totalWrote == toWrite.length)
+            if (length > 0)
             {
-                mToWrite.get(key).remove(0);
+                packet.flip();
+                this.proxyRead(key, packet, length);
             }
-            else
+            if (length == -1)
             {
-                Log.d(TAG, "Not full write: " + totalWrote);
-                mToWrite.get(key).set(0, Arrays.copyOfRange(mToWrite.get(key).get(0), totalWrote, toWrite.length));
-                // key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-                //break; // Wasn't able to receive anymore so break out //TODO: if switched back uncomment this
+                key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
+                ((IChannelListener) key.attachment()).readFinish();
             }
         }
-        else
+        catch (ClosedChannelException e)
         {
-            synchronized (this)
+            ((IChannelListener) key.attachment()).close();
+        }
+        catch (SocketException e)
+        {
+            ((IChannelListener) key.attachment()).close();
+        }
+        length = 0;
+    }
+
+    private void handleWrite(SelectionKey key) throws IOException
+    {
+        Log.d(TAG, key.toString() + " Writing");
+        synchronized (this)
+        {
+            //TODO This errors sometimes with null object reference
+            // I think it is perhaps running out of memory and I can't make a new one
+            if (!mWriteQueue.get(key).isEmpty()) //TODO: switch this back to while?
             {
-                //Dont want something to have been added when we got here
-                if (mToWrite.get(key).isEmpty())
-                    key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+                byte[] toWrite = mWriteQueue.get(key).remove();
+                ByteBuffer writer = ByteBuffer.wrap(new byte[toWrite.length]);
+                writer.put(toWrite);
+                writer.flip();
+                while (writer.hasRemaining())
+                {
+                    if (key.channel() instanceof SocketChannel)
+                    {
+                        ((SocketChannel) key.channel()).write(writer);
+                        ((SocketChannel) key.channel()).socket().getOutputStream().flush();
+                    } else if (key.channel() instanceof DatagramChannel)
+                    {
+                        UDPChannel attachment = (UDPChannel) key.attachment();
+                        InetSocketAddress toSend = new InetSocketAddress(attachment.getmContext().getDestIP(),
+                                attachment.getmContext().getDestPort());
+                        ((DatagramChannel) key.channel()).send(writer, toSend);
+                        ((UDPChannel) key.attachment()).setRecentlyUsed(System.currentTimeMillis());
+                    }
+                }
+            }
+            if(mWriteQueue.get(key).isEmpty())
+            {
+                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
             }
         }
     }

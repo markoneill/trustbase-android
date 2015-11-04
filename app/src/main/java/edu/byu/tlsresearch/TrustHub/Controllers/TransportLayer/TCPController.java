@@ -38,8 +38,12 @@ public final class TCPController
         }
         catch (IOException e)
         {
-            Log.e("TCPChannel", "failed to connect" + e.getMessage());
+            Log.e("TCPController", "failed to connect" + e.getMessage());
         }
+        //        for(Map.Entry<Connection, TCPChannel> entry : clients.entrySet())
+    //        {
+    //            Log.d("TCPController", ((TCBState) entry.getValue().getmState()).toString());
+    //        }
     }
 
     public static void remove(Connection toRemove)
