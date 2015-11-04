@@ -80,15 +80,24 @@ public class PolicyEngine extends Service
         final Iterator iterator = mListeners.iterator();
         int timeout = 6000;
         PluginInterface.POLICY_RESPONSE toReturn = PluginInterface.POLICY_RESPONSE.VALID_PROXY; //TODO: Valid because we just let the default CA system take a look
+        //Set congress parameters.
+        double congress_threshold = 0.5;
+        int num_plugins = 0;
+        int plugin_sum = 0;
         while (iterator.hasNext())
         {
+            num_plugins++;
             myTask task = new myTask((PluginInterface) iterator.next(), cert_chain);
             Future<PluginInterface.POLICY_RESPONSE> future = executor.submit(task);
             try
             {
                 //Put decision making logic here
                 //If there are no plugins, return VALID
-                toReturn = future.get(timeout, TimeUnit.MILLISECONDS);
+                PluginInterface.POLICY_RESPONSE pluginResult;
+                pluginResult = future.get(timeout, TimeUnit.MILLISECONDS);
+                //Increment sum if response is valid
+                if(pluginResult == PluginInterface.POLICY_RESPONSE.VALID)
+                    plugin_sum++;
             }
             catch (InterruptedException e)
             {
@@ -102,6 +111,17 @@ public class PolicyEngine extends Service
             }
         }
         executor.shutdown();
+        //Calculate response based on plugin responses
+        double congress_rate = (double) plugin_sum / (double) num_plugins;
+        //Check that the agreeance rate between the plugins is greater than or equal to the threshold
+        if((congress_rate - congress_threshold) > -0.001) {
+            Log.d(TAG, "Returning VALID");
+            toReturn = PluginInterface.POLICY_RESPONSE.VALID;
+        }
+        else {
+            Log.d(TAG, "Returning INVALID");
+            toReturn = PluginInterface.POLICY_RESPONSE.INVALID;
+        }
         return toReturn;
     }
 
