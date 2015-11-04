@@ -97,192 +97,204 @@ public class TrustHub
         mStates.remove(((TCPChannel)key.attachment()).getmContext());
     }
 
-    public byte[] proxyOut(byte[] toWrite, SelectionKey key)
+    public void proxyOut(byte[] toWrite, SelectionKey key)
     {
-        if(!(key.attachment() instanceof TCPChannel))
-        {
-            return toWrite;
-        }
-        Connection conn = ((TCPChannel) key.attachment()).getmContext();
-        connection_state conState = getState(conn);
         byte[] reallySend = null;
-        if (conState.sendBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it TLS?
-        {
-            conState.sendBuffer.buffer.put(toWrite);
-            conState.sendBuffer.buffer.flip();
-            if (conState.sendBuffer.curState == TLSState.tls_state.CLIENT_HELLO_SENT)
-            {
-                switch (conState.proxyState)
-                {
-                    case NOPROXY:
-                        // We no longer care about this connection
-                        conState.sendBuffer.curState = TLSState.tls_state.IRRELEVANT;
-                        // TODO delete the buffer?
-                        reallySend = toWrite; // Don't want to use buffer because
-                        // ClientHello is in there
-                        break;
-                    case PROXY:
-                        byte[] proxySend = new byte[conState.sendBuffer.buffer.remaining()];
-                        conState.sendBuffer.buffer.get(proxySend); // Get all the handshake data
-                        try
-                        {
-                            conState.myProxy.send(proxySend);
-                        } catch (SSLException e)
-                        {
-                            Log.e(TAG, "Proxy Send failed: " + e.getMessage());
-                        }
-                        break;
-                    case KILL:
-                        Log.e(TAG, "Should've sent a bad cert why are we sending crap still?");
-                        break;
-                    case START:
-                        // Such as session renegotiation crap (already put in buffer)
-                        reallySend = toWrite;
-                        break;
-                }
-            } else
-            {
-                conState.sendBuffer.buffer.mark();
-                TLSState.handle(conState, conState.sendBuffer);
-                conState.sendBuffer.buffer.reset();
-                if (conState.sendBuffer.curState != TLSState.tls_state.CLIENT_HELLO_SENT &&
-                        conState.sendBuffer.curState != TLSState.tls_state.IRRELEVANT)
-                {
-                    //Didn't get the whole clientHello yet so
-                    //pretend we haven't gotten anything lolol
-                    conState.sendBuffer.curState = TLSState.tls_state.UNKNOWN;
-                    conState.sendBuffer.toRead = 1;
-                } else
-                {
-                    reallySend = new byte[conState.sendBuffer.buffer.remaining()];
-                    conState.sendBuffer.buffer.mark(); // Want to save ClientHello
-                    conState.sendBuffer.buffer.get(reallySend);
-                    conState.sendBuffer.buffer.reset();
-                }
-            }
-            conState.sendBuffer.buffer.compact();
-        }
-        else
+        if(!(key.attachment() instanceof TCPChannel))
         {
             reallySend = toWrite;
         }
-        return reallySend;
-    }
-
-    public byte[] proxyIn(byte[] packet, SelectionKey key)
-    {
-        if(!(key.attachment() instanceof TCPChannel))
+        else
         {
-            return packet;
-        }
-        // Get connection Info
-        Connection conn = ((TCPChannel) key.attachment()).getmContext();
-        connection_state conState = getState(conn);
-
-        byte[] reallyReceive = null;
-        if (conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it tls?
-        {
-            // Add packet to queue
-            conState.recvBuffer.buffer.put(packet);
-            conState.recvBuffer.buffer.flip();
-            // If server hasn't finished handshake
-            if (conState.recvBuffer.curState != TLSState.tls_state.SERVER_HELLO_DONE_SENT)
+            Connection conn = ((TCPChannel) key.attachment()).getmContext();
+            connection_state conState = getState(conn);
+            if (conState.sendBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it TLS?
             {
-                // Don't want the client to know anything until we have it all
-                conState.recvBuffer.buffer.mark();
-                // update the state
-                TLSState.handle(conState, conState.recvBuffer);
-                // revert back to where we were
-                conState.recvBuffer.buffer.reset();
-            }
-            // TLSState.handle could've changed us to this state
-            if (conState.recvBuffer.curState == TLSState.tls_state.SERVER_HELLO_DONE_SENT)
-            {
-                //Policy Engine should've made a decision
-                switch (conState.proxyState)
+                conState.sendBuffer.buffer.put(toWrite);
+                conState.sendBuffer.buffer.flip();
+                if (conState.sendBuffer.curState == TLSState.tls_state.CLIENT_HELLO_SENT)
                 {
-                    case NOPROXY:
-                        //No longer care about the connection
-                        conState.recvBuffer.curState = TLSState.tls_state.IRRELEVANT;
-                        //Should send everything to the ServerHelloDone
-                        reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
-                        conState.recvBuffer.buffer.get(reallyReceive);
-                        //TODO delete the buffer?
-                        break;
-                    case PROXY:
-                        if (conState.myProxy == null)
-                        {
+                    switch (conState.proxyState)
+                    {
+                        case NOPROXY:
+                            // We no longer care about this connection
+                            conState.sendBuffer.curState = TLSState.tls_state.IRRELEVANT;
+                            // TODO delete the buffer?
+                            reallySend = toWrite; // Don't want to use buffer because
+                            // ClientHello is in there
+                            break;
+                        case PROXY:
+                            byte[] proxySend = new byte[conState.sendBuffer.buffer.remaining()];
+                            conState.sendBuffer.buffer.get(proxySend); // Get all the handshake data
                             try
                             {
-                                // Dump the Server responses and restart the connection
-                                // We compact at end so just set to limit
-                                conState.recvBuffer.buffer.position(conState.recvBuffer.buffer.limit());
-                                key = ((TCPChannel) key.attachment()).replaceChannel();
-                                // Start of proxying
-                                conState.startProxy(key);
-                                // Send the client Hello
-                                conState.sendBuffer.buffer.flip();
-                                byte[] clientHello = new byte[conState.sendBuffer.buffer.remaining()];
-                                conState.sendBuffer.buffer.get(clientHello);
-                                conState.sendBuffer.buffer.compact();
-                                conState.myProxy.send(clientHello);
-                                conState.myProxy.receive(new byte[0]); //Kickstart the proxy
+                                conState.myProxy.send(proxySend);
                             } catch (SSLException e)
                             {
-                                Log.e(TAG, "Send clientHello failed: " + e.getMessage());
-                                e.printStackTrace();
-                            } catch (IOException e)
-                            {
-                                Log.e(TAG, "Unable to open new socket: " + e.getMessage());
-                            } catch (Exception e)
-                            {
-                                Log.e(TAG, "Proxy failed: " + e.getMessage());
+                                Log.e(TAG, "Proxy Send failed: " + e);
                                 e.printStackTrace();
                             }
-                        } else
-                        {
-                            byte[] proxyReceive = new byte[conState.recvBuffer.buffer.remaining()];
-                            conState.recvBuffer.buffer.get(proxyReceive); // Get all the handshake data
-                            // i.e. ClientHello to proxy
-                            try
-                            {
-                                conState.myProxy.receive(proxyReceive);
-                            } catch (SSLException e)
-                            {
-                                Log.e(TAG, "Proxy Receive failed: " + e.getMessage());
-                                e.printStackTrace();
-                            }
-                        }
-
-                        break;
-                    case KILL:
-                        //TODO replaceCert
-                        break;
-                    case START:
-                        //TODO perhaps have to have a listener if policy engine needs to be asynchronous
-                        Log.e(TAG, "Policy Engine should've made a decision");
-                        break;
-                }
-            } else
-            {
-                if (conState.recvBuffer.curState == TLSState.tls_state.IRRELEVANT)
-                {
-                    reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
-                    conState.recvBuffer.buffer.get(reallyReceive);
-                    //TODO delete buffer?
+                            break;
+                        case KILL:
+                            Log.e(TAG, "Should've sent a bad cert why are we sending crap still?");
+                            break;
+                        case START:
+                            // Such as session renegotiation crap (already put in buffer)
+                            reallySend = toWrite;
+                            break;
+                    }
                 } else
                 {
-                    //Haven't got it all yet so wait
-                    conState.recvBuffer.curState = TLSState.tls_state.UNKNOWN;
-                    conState.recvBuffer.toRead = 1;
+                    conState.sendBuffer.buffer.mark();
+                    TLSState.handle(conState, conState.sendBuffer);
+                    conState.sendBuffer.buffer.reset();
+                    if (conState.sendBuffer.curState != TLSState.tls_state.CLIENT_HELLO_SENT &&
+                            conState.sendBuffer.curState != TLSState.tls_state.IRRELEVANT)
+                    {
+                        //Didn't get the whole clientHello yet so
+                        //pretend we haven't gotten anything lolol
+                        conState.sendBuffer.curState = TLSState.tls_state.UNKNOWN;
+                        conState.sendBuffer.toRead = 1;
+                    } else
+                    {
+                        reallySend = new byte[conState.sendBuffer.buffer.remaining()];
+                        conState.sendBuffer.buffer.mark(); // Want to save ClientHello
+                        conState.sendBuffer.buffer.get(reallySend);
+                        conState.sendBuffer.buffer.reset();
+                    }
                 }
+                conState.sendBuffer.buffer.compact();
+            } else
+            {
+                reallySend = toWrite;
             }
-            conState.recvBuffer.buffer.compact();
-        } else
+        }
+        if (reallySend != null)
+        {
+            SocketPoller.getInstance().noProxySend(key, reallySend);
+        }
+    }
+
+    public void proxyIn(byte[] packet, SelectionKey key)
+    {
+        byte[] reallyReceive = null;
+        if(!(key.attachment() instanceof TCPChannel))
         {
             reallyReceive = packet;
         }
-        return reallyReceive;
+        else
+        {
+            // Get connection Info
+            Connection conn = ((TCPChannel) key.attachment()).getmContext();
+            connection_state conState = getState(conn);
+
+            if (conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it tls?
+            {
+                // Add packet to queue
+                conState.recvBuffer.buffer.put(packet);
+                conState.recvBuffer.buffer.flip();
+                // If server hasn't finished handshake
+                if (conState.recvBuffer.curState != TLSState.tls_state.SERVER_HELLO_DONE_SENT)
+                {
+                    // Don't want the client to know anything until we have it all
+                    conState.recvBuffer.buffer.mark();
+                    // update the state
+                    TLSState.handle(conState, conState.recvBuffer);
+                    // revert back to where we were
+                    conState.recvBuffer.buffer.reset();
+                }
+                // TLSState.handle could've changed us to this state
+                if (conState.recvBuffer.curState == TLSState.tls_state.SERVER_HELLO_DONE_SENT)
+                {
+                    //Policy Engine should've made a decision
+                    switch (conState.proxyState)
+                    {
+                        case NOPROXY:
+                            //No longer care about the connection
+                            conState.recvBuffer.curState = TLSState.tls_state.IRRELEVANT;
+                            //Should send everything to the ServerHelloDone
+                            reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
+                            conState.recvBuffer.buffer.get(reallyReceive);
+                            //TODO delete the buffer?
+                            break;
+                        case PROXY:
+                            if (conState.myProxy == null)
+                            {
+                                try
+                                {
+                                    // Dump the Server responses and restart the connection
+                                    // We compact at end so just set to limit
+                                    conState.recvBuffer.buffer.position(conState.recvBuffer.buffer.limit());
+                                    key = ((TCPChannel) key.attachment()).replaceChannel();
+                                    // Start of proxying
+                                    conState.startProxy(key);
+                                    // Send the client Hello
+                                    conState.sendBuffer.buffer.flip();
+                                    byte[] clientHello = new byte[conState.sendBuffer.buffer.remaining()];
+                                    conState.sendBuffer.buffer.get(clientHello);
+                                    conState.sendBuffer.buffer.compact();
+                                    conState.myProxy.send(clientHello);
+                                    conState.myProxy.receive(new byte[0]); //Kickstart the proxy
+                                } catch (SSLException e)
+                                {
+                                    Log.e(TAG, "Send clientHello failed: " + e.getMessage());
+                                    e.printStackTrace();
+                                } catch (IOException e)
+                                {
+                                    Log.e(TAG, "Unable to open new socket: " + e.getMessage());
+                                } catch (Exception e)
+                                {
+                                    Log.e(TAG, "Proxy failed: " + e.getMessage());
+                                    e.printStackTrace();
+                                }
+                            } else
+                            {
+                                byte[] proxyReceive = new byte[conState.recvBuffer.buffer.remaining()];
+                                conState.recvBuffer.buffer.get(proxyReceive); // Get all the handshake data
+                                // i.e. ClientHello to proxy
+                                try
+                                {
+                                    conState.myProxy.receive(proxyReceive);
+                                } catch (SSLException e)
+                                {
+                                    Log.e(TAG, "Proxy Receive failed: " + e.getMessage());
+                                    e.printStackTrace();
+                                }
+                            }
+
+                            break;
+                        case KILL:
+                            //TODO replaceCert
+                            break;
+                        case START:
+                            //TODO perhaps have to have a listener if policy engine needs to be asynchronous
+                            Log.e(TAG, "Policy Engine should've made a decision");
+                            break;
+                    }
+                } else
+                {
+                    if (conState.recvBuffer.curState == TLSState.tls_state.IRRELEVANT)
+                    {
+                        reallyReceive = new byte[conState.recvBuffer.buffer.remaining()];
+                        conState.recvBuffer.buffer.get(reallyReceive);
+                        //TODO delete buffer?
+                    } else
+                    {
+                        //Haven't got it all yet so wait
+                        conState.recvBuffer.curState = TLSState.tls_state.UNKNOWN;
+                        conState.recvBuffer.toRead = 1;
+                    }
+                }
+                conState.recvBuffer.buffer.compact();
+            } else
+            {
+                reallyReceive = packet;
+            }
+        }
+        if (reallyReceive != null)
+        {
+            ((IChannelListener) key.attachment()).receive(reallyReceive);
+        }
     }
 
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();

@@ -62,17 +62,45 @@ public class SocketPoller implements Runnable
         mWriteQueue = new ConcurrentHashMap<SelectionKey, Queue<byte[]>>();
     }
 
-    public void send(SelectionKey key, byte[] toWrite)
+    public void noProxySend(SelectionKey key, byte[] toWrite)
     {
         // TODO: syncronize reads and writes to this buffer
-        synchronized (this)
+        if(toWrite != null)
         {
-            mWriteQueue.get(key).add(toWrite);
-            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+            synchronized (this)
+            {
+                mWriteQueue.get(key).add(toWrite);
+                key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+            }
         }
     }
 
-    private void receive (SelectionKey key, ByteBuffer packet, int length)
+    public void send(SelectionKey key, byte[] toWrite)
+    {
+        // TODO: syncronize reads and writes to this buffer
+        TrustHub.getInstance().proxyOut(toWrite, key);
+    }
+
+    private void noProxyReceive (SelectionKey key, ByteBuffer packet, int length)
+    {
+        byte[] toRead = new byte[packet.remaining()];
+        packet.get(toRead);
+        if(toRead == null)
+        {
+            ((IChannelListener) key.attachment()).receive(toRead);
+            packet.clear();
+        }
+    }
+
+    private void proxyRead(SelectionKey key, ByteBuffer packet, int length)
+    {
+        byte[] toRead = new byte[packet.remaining()];
+        packet.get(toRead);
+        TrustHub.getInstance().proxyIn(toRead, key);
+        packet.clear();
+    }
+
+    private void noProxyRead(SelectionKey key, ByteBuffer packet, int length)
     {
         byte[] toRead = new byte[packet.remaining()];
         packet.get(toRead);
@@ -97,14 +125,25 @@ public class SocketPoller implements Runnable
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             return null;
         }
     }
 
     public boolean close(SelectionKey key)
     {
-        Log.d(TAG, key.toString() + " closing");
-
+        Log.d(TAG, "READ " + SelectionKey.OP_READ + " Write: " + SelectionKey.OP_WRITE + " Connecti: " + SelectionKey.OP_CONNECT + " Accept: " + SelectionKey.OP_ACCEPT);
+        Log.d(TAG, key.toString() + " closing " + key.interestOps());
+//        try
+//        {
+//            throw new Exception();
+//        }
+//        catch(Exception e)
+//        {
+//            e.printStackTrace();
+//        }
+        if (key.interestOps() != 0)
+            return false;
         if (key.isValid())
         {
             synchronized (this)
@@ -205,7 +244,7 @@ public class SocketPoller implements Runnable
             if (length > 0)
             {
                 packet.flip();
-                receive(key, packet, length);
+                this.proxyRead(key, packet, length);
             }
             if (length == -1)
             {
