@@ -1,5 +1,7 @@
 package edu.byu.tlsresearch.TrustHub.Controllers.Channel;
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -37,7 +39,6 @@ public class TCPChannel implements IChannelListener
         InetSocketAddress toConnect = new InetSocketAddress(mContext.getDestIP(),
                 mContext.getDestPort());
         SocketChannel socket = SocketChannel.open();
-        socket.socket().setTcpNoDelay(true);
         VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
         mChannelKey = SocketPoller.getInstance().registerChannel(socket, mContext, this);
 
@@ -54,6 +55,7 @@ public class TCPChannel implements IChannelListener
 
     public SelectionKey replaceChannel() throws IOException
     {
+        Log.d(TAG, "Replace channel");
         SocketPoller.getInstance().close(mChannelKey);
         //TODO close the original one
         InetSocketAddress toConnect = new InetSocketAddress(mContext.getDestIP(),
@@ -98,9 +100,9 @@ public class TCPChannel implements IChannelListener
     {
         synchronized (this)
         {
-            TCPController.remove(this.getmContext());
             SocketPoller.getInstance().close(this.getmChannelKey());
-            TrustHub.getInstance().close(this.getmChannelKey());
+            TrustHub.getInstance().close(this.getmContext());
+            TCPController.remove(this.getmContext());
         }
     }
 
