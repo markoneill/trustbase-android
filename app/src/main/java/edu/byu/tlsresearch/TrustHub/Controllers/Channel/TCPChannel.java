@@ -40,17 +40,19 @@ public class TCPChannel implements IChannelListener
                 mContext.getDestPort());
         SocketChannel socket = SocketChannel.open();
         VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
+        socket.connect(toConnect);
         mChannelKey = SocketPoller.getInstance().registerChannel(socket, mContext, this);
 
-        if(!socket.connect(toConnect))
-        {
-            mChannelKey.interestOps(SelectionKey.OP_CONNECT);
-        }
-        else
+//        if(!socket.connect(toConnect))
+//        {
+//            mChannelKey.interestOps(SelectionKey.OP_CONNECT);
+//        }
+//        else
         {
             mChannelKey.interestOps(SelectionKey.OP_READ);
         }
         mState = TCBState.START;
+        //Log.d(TAG, "Open: " + this.getmContext().toString());
     }
 
     public SelectionKey replaceChannel() throws IOException
@@ -69,6 +71,11 @@ public class TCPChannel implements IChannelListener
 
     public void send(byte[] transport)
     {
+//        int flags = TCPHeader.getFlags(transport);
+//        if((flags & TCPHeader.FIN) > 0)
+//        {
+//            Log.d(TAG, "FINned: " + this.getmContext().toString());
+//        }
         synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
         {
             this.mState.send(this, transport);
@@ -98,6 +105,7 @@ public class TCPChannel implements IChannelListener
     @Override
     public void close()
     {
+        //Log.d(TAG, "Closed: " + this.getmContext().toString());
         synchronized (this)
         {
             SocketPoller.getInstance().close(this.getmChannelKey());
