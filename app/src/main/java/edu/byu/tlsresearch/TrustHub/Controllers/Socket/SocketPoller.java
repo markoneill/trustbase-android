@@ -19,9 +19,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.UDPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub;
 import edu.byu.tlsresearch.TrustHub.Controllers.TransportLayer.UDPController;
+import edu.byu.tlsresearch.TrustHub.Utils.TCPHeader;
 import edu.byu.tlsresearch.TrustHub.model.Connection;
 
 /**
@@ -124,26 +126,18 @@ public class SocketPoller implements Runnable
         {
             if (key.isValid())
             {
-                if (key.interestOps() != 0)
-                    return false;
-                if (key.isValid())
-                {
-                    synchronized (this)
-                    {
-                        key.interestOps(0);
-                        key.cancel();
-                    }
-                }
-                try
-                {
-                    key.channel().close();
-                } catch (IOException e)
-                {
-                    Log.e(TAG, "Socket Close fail");
-                    return false;
-                }
-                mEpoll.wakeup();
+                    key.interestOps(0);
+                    key.cancel();
             }
+            try
+            {
+                key.channel().close();
+            } catch (IOException e)
+            {
+                Log.e(TAG, "Socket Close fail");
+                return false;
+            }
+            mEpoll.wakeup();
             mWriteQueue.remove(key);
         }
         return true;
@@ -177,8 +171,17 @@ public class SocketPoller implements Runnable
                         // READ FROM SOCKET
                         if(key.isConnectable())
                         {
-                            ((SocketChannel)key.channel()).finishConnect();
-                            key.interestOps((key.interestOps() | SelectionKey.OP_READ) & ~SelectionKey.OP_CONNECT);
+                            try
+                            {
+                                ((SocketChannel) key.channel()).finishConnect();
+                                key.interestOps((key.interestOps() | SelectionKey.OP_READ) & ~SelectionKey.OP_CONNECT);
+                            }
+                            catch(Exception e)
+                            {
+                                Log.d(TAG, "failed connect");
+                                ((TCPChannel) key.attachment()).receive(new byte[0], TCPHeader.RST);
+                                ((TCPChannel) key.attachment()).close();
+                            }
                         }
                         else if (key.isReadable())
                         {
