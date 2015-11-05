@@ -23,7 +23,7 @@ public class TrustHub
 {
     private String TAG = "TrustHub";
     private TLSState tls_state_handler = new TLSState();
-    private Map<SelectionKey, connection_state> mStates = new HashMap<SelectionKey, connection_state>();
+    private Map<Connection, connection_state> mStates = new HashMap<Connection, connection_state>();
 
     private static TrustHub mInstance;
 
@@ -83,16 +83,16 @@ public class TrustHub
 
     private TrustHub() {}
 
-    private connection_state getState(SelectionKey context)
+    private connection_state getState(Connection context)
     {
         if (!mStates.containsKey(context))
         {
-            mStates.put(context, new connection_state(((TCPChannel)context.attachment()).getmContext()));
+            mStates.put(context, new connection_state(context));
         }
         return mStates.get(context);
     }
 
-    public void close(SelectionKey context)
+    public void close(Connection context)
     {
         if(mStates.containsKey(context))
         {
@@ -110,7 +110,7 @@ public class TrustHub
         else
         {
             Connection conn = ((TCPChannel) key.attachment()).getmContext();
-            connection_state conState = getState(key);
+            connection_state conState = getState(conn);
             if (conState.sendBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it TLS?
             {
                 conState.sendBuffer.buffer.put(toWrite);
@@ -174,7 +174,6 @@ public class TrustHub
         }
         if (reallySend != null)
         {
-//            Log.d(TAG, "Done");
             SocketPoller.getInstance().noProxySend(key, reallySend);
         }
     }
@@ -190,7 +189,7 @@ public class TrustHub
         {
             // Get connection Info
             Connection conn = ((TCPChannel) key.attachment()).getmContext();
-            connection_state conState = getState(key);
+            connection_state conState = getState(conn);
 
             if (conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it tls?
             {

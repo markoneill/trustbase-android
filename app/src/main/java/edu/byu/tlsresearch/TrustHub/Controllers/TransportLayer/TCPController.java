@@ -21,24 +21,26 @@ import edu.byu.tlsresearch.TrustHub.model.Connection;
 public final class TCPController
 {
     private final static int PSUEDO_HEADER_LENGTH = 12;
-    private static Map<Connection, TCPChannel> clients = new ConcurrentHashMap<Connection,
+    private final static Map<Connection, TCPChannel> clients = new ConcurrentHashMap<Connection,
             TCPChannel>();
 
     public static void send(Connection context, byte[] transport)
     {
-        try
+        synchronized (clients)
         {
-            TCPChannel connectionChannel = clients.get(context);
-            if (connectionChannel == null)
+            try
             {
-                connectionChannel = new TCPChannel(context, transport);
-                clients.put(context, connectionChannel);
+                TCPChannel connectionChannel = clients.get(context);
+                if (connectionChannel == null)
+                {
+                    connectionChannel = new TCPChannel(context, transport);
+                    clients.put(context, connectionChannel);
+                }
+                connectionChannel.send(transport);
+            } catch (IOException e)
+            {
+                Log.e("TCPController", "failed to connect" + e.getMessage());
             }
-            connectionChannel.send(transport);
-        }
-        catch (IOException e)
-        {
-            Log.e("TCPController", "failed to connect" + e.getMessage());
         }
         //        for(Map.Entry<Connection, TCPChannel> entry : clients.entrySet())
     //        {
@@ -48,7 +50,10 @@ public final class TCPController
 
     public static void remove(Connection toRemove)
     {
-        clients.remove(toRemove);
+        synchronized (clients)
+        {
+            clients.remove(toRemove);
+        }
     }
 
     public static void receive(byte[] payload, TCPChannel context, int flags)

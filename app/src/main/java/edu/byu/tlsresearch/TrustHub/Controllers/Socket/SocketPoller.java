@@ -12,17 +12,13 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.UDPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.TLSProxy.TrustHub;
 import edu.byu.tlsresearch.TrustHub.Controllers.TransportLayer.UDPController;
@@ -64,11 +60,11 @@ public class SocketPoller implements Runnable
 
     public void noProxySend(SelectionKey key, byte[] toWrite)
     {
-        // TODO: syncronize reads and writes to this buffer
         if(toWrite != null)
         {
             synchronized (this)
             {
+                mEpoll.wakeup();
                 mWriteQueue.get(key).add(toWrite);
                 key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
             }
@@ -77,9 +73,8 @@ public class SocketPoller implements Runnable
 
     public void send(SelectionKey key, byte[] toWrite)
     {
-        //Log.d(TAG, "SENDING");
+
         TrustHub.getInstance().proxyOut(toWrite, key);
-        //Log.d(TAG, "SENT");
     }
 
     private void noProxyReceive (SelectionKey key, ByteBuffer packet, int length)
@@ -101,17 +96,8 @@ public class SocketPoller implements Runnable
         packet.clear();
     }
 
-    private void noProxyRead(SelectionKey key, ByteBuffer packet, int length)
-    {
-        byte[] toRead = new byte[packet.remaining()];
-        packet.get(toRead);
-        ((IChannelListener) key.attachment()).receive(toRead);
-        packet.clear();
-    }
-
     public SelectionKey registerChannel(SelectableChannel toRegister, Connection con, IChannelListener writeBack)
     {
-        //Log.d(TAG, "New connection");
         SelectionKey toAdd;
         try
         {
@@ -134,35 +120,31 @@ public class SocketPoller implements Runnable
 
     public boolean close(SelectionKey key)
     {
-        //Log.d(TAG, "READ " + SelectionKey.OP_READ + " Write: " + SelectionKey.OP_WRITE + " Connecti: " + SelectionKey.OP_CONNECT + " Accept: " + SelectionKey.OP_ACCEPT);
-        //Log.d(TAG, key.toString() + " closing " + key.interestOps());
-//        try
-//        {
-//            throw new Exception();
-//        }
-//        catch(Exception e)
-//        {
-//            e.printStackTrace();
-//        }
-        if (key.interestOps() != 0)
-            return false;
-        if (key.isValid())
+        synchronized (this)
         {
-            synchronized (this)
+            if (key.isValid())
             {
-                key.interestOps(0);
-                key.cancel();
+                if (key.interestOps() != 0)
+                    return false;
+                if (key.isValid())
+                {
+                    synchronized (this)
+                    {
+                        key.interestOps(0);
+                        key.cancel();
+                    }
+                }
+                try
+                {
+                    key.channel().close();
+                } catch (IOException e)
+                {
+                    Log.e(TAG, "Socket Close fail");
+                    return false;
+                }
+                mEpoll.wakeup();
             }
-        }
-        mWriteQueue.remove(key);
-        try
-        {
-            key.channel().close();
-        }
-        catch (IOException e)
-        {
-            Log.e(TAG, "Socket Close fail");
-            return false;
+            mWriteQueue.remove(key);
         }
         return true;
     }
@@ -172,8 +154,6 @@ public class SocketPoller implements Runnable
     {
         java.lang.System.setProperty("java.net.preferIPv4Stack", "true");
         java.lang.System.setProperty("java.net.preferIPv6Addresses", "false");
-        ByteBuffer packet = ByteBuffer.allocate(32767);
-        int length = 0;
 
         while (true)
         {
@@ -185,7 +165,7 @@ public class SocketPoller implements Runnable
                 {
 
                    // Log.d(TAG, "End Polling");
-                    //Log.d(TAG, ""+mWriteQueue.size());
+                    //Log.d(TAG, "" + mWriteQueue.size());
                     synchronized (this)
                     {
                     } // used to stop this from blocking immediately when wakeup from register is called
@@ -229,6 +209,7 @@ public class SocketPoller implements Runnable
     private void handleRead(SelectionKey key) throws IOException
     {
 //        Log.d(TAG, key.toString() + " Reading");
+
         ByteBuffer packet = ByteBuffer.allocate(32767);
         int length = 0;
         try
@@ -267,7 +248,8 @@ public class SocketPoller implements Runnable
 
     private void handleWrite(SelectionKey key) throws IOException
     {
-//        Log.d(TAG, key.toString() + " Writing");
+        //Log.d(TAG, key.toString() + " Writing");
+
         synchronized (this)
         {
             //TODO This errors sometimes with null object reference
@@ -283,7 +265,6 @@ public class SocketPoller implements Runnable
                     if (key.channel() instanceof SocketChannel)
                     {
                         ((SocketChannel) key.channel()).write(writer);
-                        ((SocketChannel) key.channel()).socket().getOutputStream().flush();
                     } else if (key.channel() instanceof DatagramChannel)
                     {
                         UDPChannel attachment = (UDPChannel) key.attachment();
