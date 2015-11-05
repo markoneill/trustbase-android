@@ -40,14 +40,13 @@ public class TCPChannel implements IChannelListener
                 mContext.getDestPort());
         SocketChannel socket = SocketChannel.open();
         VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
-        socket.connect(toConnect);
         mChannelKey = SocketPoller.getInstance().registerChannel(socket, mContext, this);
 
-//        if(!socket.connect(toConnect))
-//        {
-//            mChannelKey.interestOps(SelectionKey.OP_CONNECT);
-//        }
-//        else
+        if(!socket.connect(toConnect))
+        {
+            mChannelKey.interestOps(SelectionKey.OP_CONNECT);
+        }
+        else
         {
             mChannelKey.interestOps(SelectionKey.OP_READ);
         }
