@@ -174,7 +174,7 @@ public class TrustHub
         }
         if (reallySend != null)
         {
-            Log.d(TAG, "Done");
+//            Log.d(TAG, "Done");
             SocketPoller.getInstance().noProxySend(key, reallySend);
         }
     }

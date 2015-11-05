@@ -77,9 +77,9 @@ public class SocketPoller implements Runnable
 
     public void send(SelectionKey key, byte[] toWrite)
     {
-        Log.d(TAG, "SENDING");
+        //Log.d(TAG, "SENDING");
         TrustHub.getInstance().proxyOut(toWrite, key);
-        Log.d(TAG, "SENT");
+        //Log.d(TAG, "SENT");
     }
 
     private void noProxyReceive (SelectionKey key, ByteBuffer packet, int length)
@@ -111,7 +111,7 @@ public class SocketPoller implements Runnable
 
     public SelectionKey registerChannel(SelectableChannel toRegister, Connection con, IChannelListener writeBack)
     {
-        Log.d(TAG, "New connection");
+        //Log.d(TAG, "New connection");
         SelectionKey toAdd;
         try
         {
@@ -228,7 +228,7 @@ public class SocketPoller implements Runnable
 
     private void handleRead(SelectionKey key) throws IOException
     {
-        Log.d(TAG, key.toString() + " Reading");
+//        Log.d(TAG, key.toString() + " Reading");
         ByteBuffer packet = ByteBuffer.allocate(32767);
         int length = 0;
         try
@@ -267,7 +267,7 @@ public class SocketPoller implements Runnable
 
     private void handleWrite(SelectionKey key) throws IOException
     {
-        Log.d(TAG, key.toString() + " Writing");
+//        Log.d(TAG, key.toString() + " Writing");
         synchronized (this)
         {
             //TODO This errors sometimes with null object reference
