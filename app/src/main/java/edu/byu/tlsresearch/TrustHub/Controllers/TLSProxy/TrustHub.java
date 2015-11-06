@@ -109,8 +109,10 @@ public class TrustHub
         }
         else
         {
+            //Log.d(TAG, "TrustHub Out: " + TrustHub.bytesToHex(toWrite));
             Connection conn = ((TCPChannel) key.attachment()).getmContext();
             connection_state conState = getState(conn);
+            //Log.d(TAG, conState.sendBuffer.curState.toString() + " " + conState.proxyState);
             if (conState.sendBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it TLS?
             {
                 conState.sendBuffer.buffer.put(toWrite);
@@ -187,10 +189,11 @@ public class TrustHub
         }
         else
         {
+            //Log.d(TAG, "TrustHub In: " + TrustHub.bytesToHex(packet));
             // Get connection Info
             Connection conn = ((TCPChannel) key.attachment()).getmContext();
             connection_state conState = getState(conn);
-
+            //Log.d(TAG, conState.recvBuffer.curState.toString() + " " + conState.proxyState);
             if (conState.recvBuffer.curState != TLSState.tls_state.IRRELEVANT) // Is it tls?
             {
                 // Add packet to queue

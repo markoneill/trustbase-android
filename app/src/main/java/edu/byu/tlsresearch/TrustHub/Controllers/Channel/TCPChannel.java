@@ -56,20 +56,30 @@ public class TCPChannel implements IChannelListener
 
     public SelectionKey replaceChannel() throws IOException
     {
-        Log.d(TAG, "Replace channel");
+        //Log.d(TAG, "Replace channel: " + mChannelKey.toString());
         SocketPoller.getInstance().close(mChannelKey);
         //TODO close the original one
         InetSocketAddress toConnect = new InetSocketAddress(mContext.getDestIP(),
                 mContext.getDestPort());
         SocketChannel socket = SocketChannel.open();
         VPNServiceHandler.getVPNServiceHandler().protect(socket.socket());
-        socket.connect(toConnect);
         mChannelKey = SocketPoller.getInstance().registerChannel(socket, mContext, this);
+        //Log.d(TAG, "With: " + mChannelKey.toString());
+        if(!socket.connect(toConnect))
+        {
+            mChannelKey.interestOps(SelectionKey.OP_CONNECT);
+        }
+        else
+        {
+            mChannelKey.interestOps(SelectionKey.OP_READ);
+        }
         return mChannelKey;
     }
 
     public void send(byte[] transport)
     {
+        Log.d("TCBState", this.getmChannelKey().toString() + " " + TCPHeader.getSequenceNumber(transport));
+        Log.d("TCBState", "" + TCPHeader.getFlags(transport));
 //        int flags = TCPHeader.getFlags(transport);
 //        if((flags & TCPHeader.FIN) > 0)
 //        {
@@ -89,6 +99,7 @@ public class TCPChannel implements IChannelListener
 
     public void receive(byte[] payload, int flags)
     {
+        Log.d(TAG, this.getmChannelKey().toString() + " Received: " + flags + " : " + this.getSEQ() + " : " + this.getACK());
         flags |= TCPHeader.PSH | TCPHeader.ACK;
         if (payload == null) // Listeners in communicator can do NULL then nothing will be sent back
             return;

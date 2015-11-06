@@ -130,7 +130,7 @@ public enum TCBState implements ITCBState
             byte[] toSend = payload;
             if(toSend != null)
             {
-                SocketPoller.getInstance().send(context.getmChannelKey(), toSend);
+                SocketPoller.getInstance().proxySend(context.getmChannelKey(), toSend);
             }
         }
     }
