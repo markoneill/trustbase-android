@@ -78,8 +78,7 @@ public class TCPChannel implements IChannelListener
 
     public void send(byte[] transport)
     {
-        Log.d("TCBState", this.getmChannelKey().toString() + " " + TCPHeader.getSequenceNumber(transport));
-        Log.d("TCBState", "" + TCPHeader.getFlags(transport));
+        //Log.d(TAG, this.getmChannelKey().toString() + " Send: " + TCPHeader.getFlags(transport) + " Seq " + this.getACK() + " ACK: " + this.getSEQ());
 //        int flags = TCPHeader.getFlags(transport);
 //        if((flags & TCPHeader.FIN) > 0)
 //        {
@@ -94,13 +93,12 @@ public class TCPChannel implements IChannelListener
     @Override
     public void receive(byte[] payload)
     {
-        receive(payload, TCPHeader.ACK);
+        receive(payload, TCPHeader.ACK | TCPHeader.PSH);
     }
 
     public void receive(byte[] payload, int flags)
     {
-        Log.d(TAG, this.getmChannelKey().toString() + " Received: " + flags + " : " + this.getSEQ() + " : " + this.getACK());
-        flags |= TCPHeader.PSH | TCPHeader.ACK;
+        //Log.d(TAG, this.getmChannelKey().toString() + " Received: flag: " + flags + " Seq " + this.getSEQ() + " ACK: " + this.getACK());
         if (payload == null) // Listeners in communicator can do NULL then nothing will be sent back
             return;
         synchronized (this) //SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
@@ -115,7 +113,7 @@ public class TCPChannel implements IChannelListener
     @Override
     public void close()
     {
-        //Log.d(TAG, "Closed: " + this.getmContext().toString());
+        //Log.d(TAG, "Closed: " + this.getmChannelKey().toString());
         synchronized (this)
         {
             SocketPoller.getInstance().close(this.getmChannelKey());
@@ -131,14 +129,9 @@ public class TCPChannel implements IChannelListener
         {
             TCPController.receive(new byte[0], this, TCPHeader.FIN);
             this.toSEQ += 1;
-            if(this.mState == TCBState.CLOSE_WAIT)
+            if(this.mState != TCBState.FIN_WAIT1) // If we are in FIN_WAIT1 we should send one more ack back
             {
-                //ended
-                this.close();
-            }
-            else
-            {
-                this.mState = TCBState.FIN_WAIT1;
+                this.mState = TCBState.CLOSE_WAIT;
             }
         }
     }

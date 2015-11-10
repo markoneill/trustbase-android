@@ -81,6 +81,7 @@ public class SSLProxy
 
         clientSideEngine = sslc.createSSLEngine();
         clientSideEngine.setUseClientMode(false);
+        clientSideEngine.setNeedClientAuth(false);
         //SSLSession clientSession = clientSideEngine.getSession();
         cTos = ByteBuffer.allocate(65535);//clientSession.getApplicationBufferSize());
         toApp = ByteBuffer.allocate(65535);//clientSession.getPacketBufferSize() + 50);
@@ -116,15 +117,15 @@ public class SSLProxy
     {
         toApp.flip();
         toNetwork.flip();
-        if (toApp.hasRemaining())
+        if (toApp.remaining() > 0)
         {
-            Log.d(TAG, toApp.toString());
+            //Log.d(TAG, toApp.toString());
             byte[] toReceive = new byte[toApp.remaining()];
             toApp.get(toReceive);
             //Log.d("SSLProxy", "proxy to app: " + TrustHub.bytesToHex(toReceive));
             ((IChannelListener) mKey.attachment()).receive(toReceive);
         }
-        if (toNetwork.hasRemaining())
+        if (toNetwork.remaining() > 0)
         {
             byte[] toSend = new byte[toNetwork.remaining()];
             toNetwork.get(toSend);

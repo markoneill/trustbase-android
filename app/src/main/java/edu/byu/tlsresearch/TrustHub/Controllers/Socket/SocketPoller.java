@@ -64,7 +64,7 @@ public class SocketPoller implements Runnable
     {
         if(toWrite != null)
         {
-            Log.d(TAG, key.toString() + " " + TrustHub.bytesToHex(toWrite));
+            //Log.d(TAG, "Send " + key.toString());
             synchronized (this)
             {
                 mEpoll.wakeup();
@@ -94,6 +94,7 @@ public class SocketPoller implements Runnable
 
     private void proxyRead(SelectionKey key, ByteBuffer packet, int length)
     {
+        //Log.d(TAG, "Receive " + key.toString());
         byte[] toRead = new byte[packet.remaining()];
         packet.get(toRead);
         TrustHub.getInstance().proxyIn(toRead, key);
@@ -126,6 +127,7 @@ public class SocketPoller implements Runnable
     {
         synchronized (this)
         {
+            mEpoll.wakeup();
             if(key.isValid())
             {
                 key.interestOps(0);
@@ -133,22 +135,24 @@ public class SocketPoller implements Runnable
             key.cancel();
             try
             {
-                key.channel().close();
+                if(key.channel().isOpen())
+                {
+                    key.channel().close();
+                }
             } catch (IOException e)
             {
                 Log.e(TAG, "Socket Close fail");
                 return false;
             }
-            mEpoll.wakeup();
             mWriteQueue.remove(key);
-            try{
-                Log.d(TAG, "removed: " + key.toString());
-                throw new Exception();
-            }
-            catch(Exception e)
-            {
-                e.printStackTrace();
-            }
+//            try{
+//                //Log.d(TAG, "removed: " + key.toString());
+//                throw new Exception();
+//            }
+//            catch(Exception e)
+//            {
+//                e.printStackTrace();
+//            }
         }
         return true;
     }
@@ -179,6 +183,7 @@ public class SocketPoller implements Runnable
                     {
                         SelectionKey key = keyIterator.next();
                         // READ FROM SOCKET
+                       // Log.d(TAG, "Poller: " + key.toString());
                         if(key.isConnectable())
                         {
                             try
@@ -289,6 +294,10 @@ public class SocketPoller implements Runnable
             if(mWriteQueue.get(key).isEmpty())
             {
                 key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+                if(key.channel() instanceof SocketChannel && key.interestOps() == 0)
+                {
+                    ((TCPChannel) key.attachment()).close();
+                }
             }
         }
     }

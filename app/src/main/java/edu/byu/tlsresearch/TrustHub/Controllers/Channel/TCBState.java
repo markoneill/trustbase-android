@@ -2,6 +2,8 @@ package edu.byu.tlsresearch.TrustHub.Controllers.Channel;
 
 import android.util.Log;
 
+import java.io.IOException;
+
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
 import edu.byu.tlsresearch.TrustHub.Utils.TCPHeader;
 
@@ -70,44 +72,64 @@ public enum TCBState implements ITCBState
                     if ((flags & TCPHeader.FIN) != 0)
                     {
                         // Make sure to ACK the FIN (may have already been ACKed)
-                        context.receive(new byte[0], TCPHeader.ACK);
-                        //context.receive(new byte[0], TCPHeader.FIN);
-                        context.setmState(TCBState.CLOSE_WAIT);
+                        if(TCPHeader.getPayload(transport).length == 0)
+                        {
+                            context.setACK(context.getACK()+1);
+                            context.receive(new byte[0], TCPHeader.ACK);
+                        }
+                        try
+                        {
+                            context.getmChannelKey().channel().close();
+                        } catch (IOException e)
+                        {
+                            e.printStackTrace();
+                        }
+                        context.setmState(TCBState.FIN_WAIT1);
                     }
                 }
             },
-    CLOSE_WAIT // We sent a FIN in response to their FIN and are waiting for ACK
+    CLOSE_WAIT // We are sending the remaining data after a fin
             {
                 @Override
                 public void send(TCPChannel context, byte[] transport)
                 {
-                    TCBState.ESTABLISHED.send(context, transport); // TODO make sure its ack for the fin?
-                    context.close();
-                }
-            },
-    FIN_WAIT1 // SocketPoller closed and are waiting for acknowledgement
-            {
-                @Override
-                public void send(TCPChannel context, byte[] transport)
-                {
+
                     int flags = TCPHeader.getFlags(transport);
                     if ((flags & TCPHeader.ACK) != 0)
                     {
                         Establish_ACK_handler(context, transport);
+                        if((flags & TCPHeader.FIN) != 0)
+                        {
+                            context.close();
+                        }
                     }
-                    if ((flags & TCPHeader.FIN) != 0)
+                    else if ((flags & TCPHeader.FIN) != 0)
                     {
                         context.setACK(context.getACK() + 1);
                         context.receive(new byte[0], TCPHeader.ACK);
                         context.close();
                     }
+//                    TCBState.ESTABLISHED.send(context, transport);
+//                    if((TCPHeader.getFlags(transport) & TCPHeader.FIN) != 0)
+//                    {
+//                        context.close();
+//                    }
+                }
+            },
+    FIN_WAIT1 // We sent a fin waiting for reply
+            {
+                @Override
+                public void send(TCPChannel context, byte[] transport)
+                {
+                    // Shouldn't ever send data so this should be final ack so close
+                    context.close();
                 }
             };
 
     @Override
     public void send(TCPChannel context, byte[] transport) // Here just to provide default overrid enum shoudl handle all cases
     {
-        Log.d("TCPSTate", "flags: " + TCPHeader.getFlags(transport) + " state: " + context.getmState());
+        Log.d("TCBState", "flags: " + TCPHeader.getFlags(transport) + " state: " + context.getmState());
     }
 
     public void Establish_ACK_handler(TCPChannel context, byte[] transport)
