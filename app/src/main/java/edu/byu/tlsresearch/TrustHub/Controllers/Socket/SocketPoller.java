@@ -64,19 +64,22 @@ public class SocketPoller implements Runnable
     {
         if(toWrite != null)
         {
+            //Log.d(TAG, "Send " + key.toString());
             synchronized (this)
             {
                 mEpoll.wakeup();
                 mWriteQueue.get(key).add(toWrite);
                 key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
             }
+            //Log.d(TAG, "Added to Queue");
         }
     }
 
-    public void send(SelectionKey key, byte[] toWrite)
+    public void proxySend(SelectionKey key, byte[] toWrite)
     {
 
         TrustHub.getInstance().proxyOut(toWrite, key);
+        //Log.d(TAG, "Finished Send");
     }
 
     private void noProxyReceive (SelectionKey key, ByteBuffer packet, int length)
@@ -92,6 +95,7 @@ public class SocketPoller implements Runnable
 
     private void proxyRead(SelectionKey key, ByteBuffer packet, int length)
     {
+        //Log.d(TAG, "Receive " + key.toString());
         byte[] toRead = new byte[packet.remaining()];
         packet.get(toRead);
         TrustHub.getInstance().proxyIn(toRead, key);
@@ -124,21 +128,32 @@ public class SocketPoller implements Runnable
     {
         synchronized (this)
         {
-            if (key.isValid())
+            mEpoll.wakeup();
+            if(key.isValid())
             {
-                    key.interestOps(0);
-                    key.cancel();
+                key.interestOps(0);
             }
+            key.cancel();
             try
             {
-                key.channel().close();
+                if(key.channel().isOpen())
+                {
+                    key.channel().close();
+                }
             } catch (IOException e)
             {
                 Log.e(TAG, "Socket Close fail");
                 return false;
             }
-            mEpoll.wakeup();
             mWriteQueue.remove(key);
+//            try{
+//                //Log.d(TAG, "removed: " + key.toString());
+//                throw new Exception();
+//            }
+//            catch(Exception e)
+//            {
+//                e.printStackTrace();
+//            }
         }
         return true;
     }
@@ -154,7 +169,7 @@ public class SocketPoller implements Runnable
             try
             {
 
-               // Log.d(TAG, "Start Polling");
+                //Log.d(TAG, "Start Polling");
                 if (mEpoll.select() > 0)
                 {
 
@@ -169,6 +184,7 @@ public class SocketPoller implements Runnable
                     {
                         SelectionKey key = keyIterator.next();
                         // READ FROM SOCKET
+                       // Log.d(TAG, "Poller: " + key.toString());
                         if(key.isConnectable())
                         {
                             try
@@ -223,7 +239,7 @@ public class SocketPoller implements Runnable
             }
             else if (key.channel() instanceof DatagramChannel)
             {
-                InetSocketAddress from =(InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
+                InetSocketAddress from = (InetSocketAddress) ((DatagramChannel) key.channel()).receive(packet);
                 ((UDPChannel) key.attachment()).setSend(from.getAddress().toString().replace("/", ""), from.getPort());
                 length = packet.position();
             }
@@ -281,6 +297,10 @@ public class SocketPoller implements Runnable
             if(mWriteQueue.get(key).isEmpty())
             {
                 key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+                if(key.channel() instanceof SocketChannel && key.interestOps() == 0)
+                {
+                    ((TCPChannel) key.attachment()).close();
+                }
             }
         }
     }

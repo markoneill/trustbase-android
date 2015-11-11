@@ -75,6 +75,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
         boolean success = false;
         try
         {
+            //Log.d(TAG, "App receive");
             mAppOut.write(packet);  //TODO: Test whether receive and reads at the same time crash it
             mAppOut.flush();
             success = true;
@@ -109,6 +110,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
             try
             {
                 length = mAppIn.read(packet.array());
+                //Log.d(TAG, "App send");
             }
             catch (IOException e)
             {
