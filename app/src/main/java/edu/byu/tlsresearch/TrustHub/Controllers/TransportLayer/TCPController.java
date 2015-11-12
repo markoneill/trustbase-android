@@ -5,6 +5,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
@@ -23,37 +24,35 @@ public final class TCPController
     private final static int PSUEDO_HEADER_LENGTH = 12;
     private final static Map<Connection, TCPChannel> clients = new ConcurrentHashMap<Connection,
             TCPChannel>();
+    private final static ReentrantLock clientsLock = new ReentrantLock();
 
     public static void send(Connection context, byte[] transport)
     {
-        synchronized (clients)
+        try
         {
-            try
+            TCPChannel connectionChannel = clients.get(context);
+            if (connectionChannel == null)
             {
-                TCPChannel connectionChannel = clients.get(context);
-                if (connectionChannel == null)
-                {
-                    connectionChannel = new TCPChannel(context, transport);
-                    clients.put(context, connectionChannel);
-                }
-                connectionChannel.send(transport);
-            } catch (IOException e)
-            {
-                Log.e("TCPController", "failed to connect" + e.getMessage());
+                connectionChannel = new TCPChannel(context, transport);
+                clientsLock.lock();
+                clients.put(context, connectionChannel);
+                //Log.d("TCPController", "1 clients unLock");
+                clientsLock.unlock();
             }
+            connectionChannel.send(transport);
+        } catch (IOException e)
+        {
+            Log.e("TCPController", "failed to connect" + e.getMessage());
         }
-        //        for(Map.Entry<Connection, TCPChannel> entry : clients.entrySet())
-    //        {
-    //            Log.d("TCPController", ((TCBState) entry.getValue().getmState()).toString());
-    //        }
     }
 
     public static void remove(Connection toRemove)
     {
-        synchronized (clients)
-        {
-            clients.remove(toRemove);
-        }
+        //Log.d("TCPController", "1 clients Lock: " + clientsLock.isHeldByCurrentThread());
+        clientsLock.lock();
+        clients.remove(toRemove);
+        //Log.d("TCPController", "1 clients unLock");
+        clientsLock.unlock();
     }
 
     public static void receive(byte[] payload, TCPChannel context, int flags)

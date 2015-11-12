@@ -8,6 +8,7 @@ import java.nio.channels.SelectionKey;
 import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.net.ssl.SSLException;
 
@@ -24,6 +25,7 @@ public class TrustHub
     private String TAG = "TrustHub";
     private TLSState tls_state_handler = new TLSState();
     private Map<Connection, connection_state> mStates = new HashMap<Connection, connection_state>();
+    private ReentrantLock stateLock = new ReentrantLock();
 
     private static TrustHub mInstance;
 
@@ -85,19 +87,24 @@ public class TrustHub
 
     private connection_state getState(Connection context)
     {
+        stateLock.lock();
         if (!mStates.containsKey(context))
         {
             mStates.put(context, new connection_state(context));
         }
-        return mStates.get(context);
+        connection_state toReturn = mStates.get(context);
+        stateLock.unlock();
+        return toReturn;
     }
 
     public void close(Connection context)
     {
+        stateLock.lock();
         if(mStates.containsKey(context))
         {
             mStates.remove(context);
         }
+        stateLock.unlock();
     }
 
     public void proxyOut(byte[] toWrite, SelectionKey key)

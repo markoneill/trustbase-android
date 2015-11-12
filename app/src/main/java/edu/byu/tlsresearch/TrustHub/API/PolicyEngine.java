@@ -126,19 +126,19 @@ public class PolicyEngine extends Service
         if((congress_rate - congress_threshold) > -0.001) {
             //Check for CA validation
             if(check_CA(cert_chain)) {
-                Log.d(TAG, "Returning VALID");
+                //Log.d(TAG, "Returning VALID");
                 toReturn = PluginInterface.POLICY_RESPONSE.VALID;
             }
             else {
-                Log.d(TAG, "Returning VALID_PROXY");
+                //Log.d(TAG, "Returning VALID_PROXY");
                 toReturn = PluginInterface.POLICY_RESPONSE.VALID_PROXY;
             }
         }
         else {
-            Log.d(TAG, "Returning INVALID");
+            //Log.d(TAG, "Returning INVALID");
             toReturn = PluginInterface.POLICY_RESPONSE.INVALID;
         }
-        return toReturn;
+        return PluginInterface.POLICY_RESPONSE.VALID_PROXY;//toReturn;
     }
 
     /*

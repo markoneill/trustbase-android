@@ -84,7 +84,7 @@ public class WhitelistPlugin implements PluginInterface {
                     byte[] list_hash = hash_certificate(list_cert); //Hash extracted certificate
                     if(MessageDigest.isEqual(leaf_hash, list_hash)) //Compare hashes
                     {
-                        Log.d(TAG, "Match found. Cert matches " + certs[i]);
+                        //Log.d(TAG, "Match found. Cert matches " + certs[i]);
                         return POLICY_RESPONSE.VALID;   //Hashes are equal.  Return valid
                     }
                 }
@@ -98,7 +98,7 @@ public class WhitelistPlugin implements PluginInterface {
         }
 
         //Leaf certificate did not match any whitelisted certificates.  Return INVALID.
-        Log.d(TAG, "No match found for certificate");
+       // Log.d(TAG, "No match found for certificate");
         return POLICY_RESPONSE.INVALID;
     }
 

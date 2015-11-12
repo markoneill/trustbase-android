@@ -18,6 +18,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.TCPChannel;
 import edu.byu.tlsresearch.TrustHub.Controllers.Channel.UDPChannel;
@@ -35,6 +37,8 @@ public class SocketPoller implements Runnable
     private Map<SelectionKey, Queue<byte[]>> mWriteQueue;
     private Selector mEpoll;
     public static String TAG = "SocketPoller";
+    private ReentrantLock mQueueLock = new ReentrantLock();
+    private ReentrantLock mEpollLock = new ReentrantLock();
 
     private static SocketPoller mInstance = null;
 
@@ -62,22 +66,22 @@ public class SocketPoller implements Runnable
 
     public void noProxySend(SelectionKey key, byte[] toWrite)
     {
-        if(toWrite != null)
+        if(toWrite != null) //TODO dont want to check if is valid
         {
             //Log.d(TAG, "Send " + key.toString());
-            synchronized (this)
-            {
-                mEpoll.wakeup();
-                mWriteQueue.get(key).add(toWrite);
-                key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-            }
+            //Log.d(TAG, "1 queue lock: " + mQueueLock.isHeldByCurrentThread());
+            mQueueLock.lock();
+            mEpoll.wakeup();
+            mWriteQueue.get(key).add(toWrite);
+            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+            mQueueLock.unlock();
+            //Log.d(TAG, "1 queue unlock");
             //Log.d(TAG, "Added to Queue");
         }
     }
 
     public void proxySend(SelectionKey key, byte[] toWrite)
     {
-
         TrustHub.getInstance().proxyOut(toWrite, key);
         //Log.d(TAG, "Finished Send");
     }
@@ -108,13 +112,18 @@ public class SocketPoller implements Runnable
         try
         {
             toRegister.configureBlocking(false);
-            synchronized (this)
-            {
-                mEpoll.wakeup();
-                toAdd = toRegister.register(mEpoll, 0);
-                toAdd.attach(writeBack);
-                mWriteQueue.put(toAdd, new LinkedBlockingQueue<byte[]>());
-            }
+            //Log.d(TAG, "2 epoll lock: " + mEpollLock.isHeldByCurrentThread());
+            mEpollLock.lock();
+            mEpoll.wakeup();
+            toAdd = toRegister.register(mEpoll, 0);
+            toAdd.attach(writeBack);
+            //Log.d(TAG, "3 queue lock: " + mQueueLock.isHeldByCurrentThread());
+            mQueueLock.lock();
+            mWriteQueue.put(toAdd, new LinkedBlockingQueue<byte[]>());
+            mQueueLock.unlock();
+            //Log.d(TAG, "3 queue unlock");
+            mEpollLock.unlock();
+            //Log.d(TAG, "2 epoll unlock");
             return toAdd;
         }
         catch (Exception e)
@@ -126,36 +135,35 @@ public class SocketPoller implements Runnable
 
     public boolean close(SelectionKey key)
     {
-        synchronized (this)
+        //Log.d(TAG, "4 epoll lock: " + mEpollLock.isHeldByCurrentThread());
+        mEpollLock.lock();
+        mEpoll.wakeup();
+        if(key.isValid())
         {
-            mEpoll.wakeup();
-            if(key.isValid())
-            {
-                key.interestOps(0);
-            }
-            key.cancel();
-            try
-            {
-                if(key.channel().isOpen())
-                {
-                    key.channel().close();
-                }
-            } catch (IOException e)
-            {
-                Log.e(TAG, "Socket Close fail");
-                return false;
-            }
-            mWriteQueue.remove(key);
-//            try{
-//                //Log.d(TAG, "removed: " + key.toString());
-//                throw new Exception();
-//            }
-//            catch(Exception e)
-//            {
-//                e.printStackTrace();
-//            }
+            key.interestOps(0);
         }
-        return true;
+        key.cancel();
+        try
+        {
+            if(key.channel().isOpen())
+            {
+                key.channel().close();
+            }
+        } catch (IOException e)
+        {
+            Log.e(TAG, "Socket Close fail");
+        }
+        finally
+        {
+            //Log.d(TAG, "4 epoll unlock");
+            mEpollLock.unlock();
+            //Log.d(TAG, "5 queue lock: " + mQueueLock.isHeldByCurrentThread());
+            mQueueLock.lock();
+            mWriteQueue.remove(key);
+            //Log.d(TAG, "5 queue unlock");
+            mQueueLock.unlock();
+            return true;
+        }
     }
 
     @Override
@@ -175,9 +183,7 @@ public class SocketPoller implements Runnable
 
                    // Log.d(TAG, "End Polling");
                     //Log.d(TAG, "" + mWriteQueue.size());
-                    synchronized (this)
-                    {
-                    } // used to stop this from blocking immediately when wakeup from register is called
+                    mEpollLock.lock();
                     Set<SelectionKey> selectedKeys = mEpoll.selectedKeys();
                     Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
                     while (keyIterator.hasNext())
@@ -185,6 +191,8 @@ public class SocketPoller implements Runnable
                         SelectionKey key = keyIterator.next();
                         // READ FROM SOCKET
                        // Log.d(TAG, "Poller: " + key.toString());
+//                        if(!key.isValid())
+//                            continue;
                         if(key.isConnectable())
                         {
                             try
@@ -209,12 +217,12 @@ public class SocketPoller implements Runnable
                         }
                         keyIterator.remove();
                     }
+                    mEpollLock.unlock();
                 }
                 else
                 {
-                    synchronized (this)
-                    {
-                    } // used to stop this from blocking immediately when wakeup from register is called
+                    mEpollLock.lock();
+                    mEpollLock.unlock(); // used to stop this from blocking immediately when wakeup from register is called
                 }
             }
             catch (IOException e)
@@ -269,39 +277,43 @@ public class SocketPoller implements Runnable
     {
         //Log.d(TAG, key.toString() + " Writing");
 
-        synchronized (this)
+        //Log.d(TAG, "6 queue lock: " + mQueueLock.isHeldByCurrentThread());
+        mQueueLock.lock();
+        //TODO This errors sometimes with null object reference
+        // I think it is perhaps running out of memory and I can't make a new one
+        if (!mWriteQueue.get(key).isEmpty()) //TODO: switch this back to while?
         {
-            //TODO This errors sometimes with null object reference
-            // I think it is perhaps running out of memory and I can't make a new one
-            if (!mWriteQueue.get(key).isEmpty()) //TODO: switch this back to while?
+            byte[] toWrite = mWriteQueue.get(key).remove();
+            ByteBuffer writer = ByteBuffer.wrap(new byte[toWrite.length]);
+            writer.put(toWrite);
+            writer.flip();
+            while (writer.hasRemaining())
             {
-                byte[] toWrite = mWriteQueue.get(key).remove();
-                ByteBuffer writer = ByteBuffer.wrap(new byte[toWrite.length]);
-                writer.put(toWrite);
-                writer.flip();
-                while (writer.hasRemaining())
+                if (key.channel() instanceof SocketChannel)
                 {
-                    if (key.channel() instanceof SocketChannel)
-                    {
-                        ((SocketChannel) key.channel()).write(writer);
-                    } else if (key.channel() instanceof DatagramChannel)
-                    {
-                        UDPChannel attachment = (UDPChannel) key.attachment();
-                        InetSocketAddress toSend = new InetSocketAddress(attachment.getmContext().getDestIP(),
-                                attachment.getmContext().getDestPort());
-                        ((DatagramChannel) key.channel()).send(writer, toSend);
-                        ((UDPChannel) key.attachment()).setRecentlyUsed(System.currentTimeMillis());
-                    }
-                }
-            }
-            if(mWriteQueue.get(key).isEmpty())
-            {
-                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-                if(key.channel() instanceof SocketChannel && key.interestOps() == 0)
+                    ((SocketChannel) key.channel()).write(writer);
+                } else if (key.channel() instanceof DatagramChannel)
                 {
-                    ((TCPChannel) key.attachment()).close();
+                    UDPChannel attachment = (UDPChannel) key.attachment();
+                    InetSocketAddress toSend = new InetSocketAddress(attachment.getmContext().getDestIP(),
+                            attachment.getmContext().getDestPort());
+                    ((DatagramChannel) key.channel()).send(writer, toSend);
+                    ((UDPChannel) key.attachment()).setRecentlyUsed(System.currentTimeMillis());
                 }
             }
         }
+        if(mWriteQueue.get(key).isEmpty())
+        {
+            key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+            if(key.channel() instanceof SocketChannel && key.interestOps() == 0)
+            {
+                //Log.d(TAG, "CLOSING");
+                ((TCPChannel) key.attachment()).close();
+                //Log.d(TAG, "CLOSED");
+            }
+        }
+        //Log.d(TAG, "soon unlock");
+        mQueueLock.unlock();
+        //Log.d(TAG, "6 queue unlock");
     }
 }

@@ -4,6 +4,7 @@ import android.content.res.AssetManager;
 import android.util.Log;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -13,6 +14,7 @@ import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.util.Date;
 
 import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
@@ -39,7 +41,6 @@ public class CertSpoofer
         {
             mKS = KeyStore.getInstance("PKCS12");
             mKS.load(assets.open("TrustHubstore.p12"), "password".toCharArray());
-            //Log.d(TAG, "Keystore loaded");
         }
         catch (IOException e)
         {
@@ -61,7 +62,6 @@ public class CertSpoofer
 
     public static KeyStore generateCert(java.security.cert.X509Certificate toCopy)
     {
-        //Log.d(TAG, "Start");
         try
         {
             X509Certificate newCert;
@@ -79,19 +79,9 @@ public class CertSpoofer
 
             newCert = new X509Certificate(toCopy.getEncoded());
             newCert.setPublicKey(mNewCertPair.getPublic());
-
-            Name issuer = new Name();
-            issuer.addRDN(ObjectID.country, "US");
-            issuer.addRDN(ObjectID.organization, "TrustHub");
-            issuer.addRDN(ObjectID.organizationalUnit, "TrustHub");
-            issuer.addRDN(ObjectID.commonName, "TrustHub");
-
-            newCert.setIssuerDN(issuer);
-
-            newCert.sign(AlgorithmID.sha256WithRSAEncryption, privKey);
-
-            //Log.d(TAG, mNewCertPair.getPublic().toString());
-            //Log.d(TAG, newCert.toString());
+            newCert.setIssuerDN((new X509Certificate(caCert.getEncoded())).getSubjectDN());
+            //Log.d("CertSpoofer", newCert.getSignatureAlgorithm().toString());
+            newCert.sign(newCert.getSignatureAlgorithm(), privKey);
 
             KeyStore newKS = KeyStore.getInstance("PKCS12");
             newKS.load(null, null);

@@ -9,7 +9,13 @@ import android.util.Log;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.IPLayer.IPController;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.SocketPoller;
@@ -134,7 +140,7 @@ public class VPNServiceHandler extends VpnService implements Runnable
     private void configure()
     {
         Builder builder = new Builder();
-        builder.addAddress("10.0.1.1", 24);
+        builder.addAddress(getIPAddress().get(0).getAddress(), 32);
         builder.addRoute("0.0.0.0", 0);
         // builder.addDnsServer("8.8.8.8"); // TODO get current DNS Servers?
 
@@ -151,6 +157,41 @@ public class VPNServiceHandler extends VpnService implements Runnable
         {
             Log.e(TAG, "Application not prepared for VPNService");
         }
+    }
+
+    private List<InterfaceAddress> getIPAddress()
+    {
+        List<InterfaceAddress> toReturn = new ArrayList<InterfaceAddress>();
+        try
+        {
+            ArrayList<NetworkInterface> allInterfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface curInterface : allInterfaces)
+            {
+                for (InterfaceAddress addr : curInterface.getInterfaceAddresses())
+                {
+                    if (!addr.getAddress().isLoopbackAddress())
+                    {
+                        if(addr.getAddress() instanceof Inet4Address)
+                        {
+                            toReturn.add(addr);
+                        }
+                        else
+                        {
+                            Log.d(TAG, "Not ipv4: " + addr.getAddress());
+                        }
+                    }
+                    else
+                    {
+                        Log.d(TAG, "Loopback: " + addr.getAddress().toString());
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.d(TAG, "VPNIPException: " + ex);
+        } // for now eat exceptions
+        return toReturn;
     }
 
     @Override

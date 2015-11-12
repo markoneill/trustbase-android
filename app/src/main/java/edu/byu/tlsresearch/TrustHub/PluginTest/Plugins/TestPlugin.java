@@ -17,7 +17,7 @@ public class TestPlugin implements PluginInterface {
     @Override
     public POLICY_RESPONSE check(List<X509Certificate> cert_chain) {
 
-        Log.d(TAG, "Success!");
+        //Log.d(TAG, "Success!");
 
         /*X509Certificate cert = null;
         if(cert_chain != null) {

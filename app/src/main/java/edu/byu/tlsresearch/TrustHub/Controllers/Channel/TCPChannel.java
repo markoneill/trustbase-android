@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.locks.ReentrantLock;
 
 import edu.byu.tlsresearch.TrustHub.Controllers.FromApp.VPNServiceHandler;
 import edu.byu.tlsresearch.TrustHub.Controllers.Socket.IChannelListener;
@@ -27,7 +28,9 @@ public class TCPChannel implements IChannelListener
     private SelectionKey mChannelKey;
     private Connection mContext;
     private long toSEQ = 0;
+    private ReentrantLock seqLock = new ReentrantLock();
     private long toACK = 0;
+    private ReentrantLock ackLock = new ReentrantLock();
     private ITCBState mState;
     private final String TAG = "TCPChannel";
 
@@ -84,10 +87,9 @@ public class TCPChannel implements IChannelListener
 //        {
 //            Log.d(TAG, "FINned: " + this.getmContext().toString());
 //        }
-        synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
-        {
-            this.mState.send(this, transport);
-        }
+        seqLock.lock();//SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
+        this.mState.send(this, transport);
+        seqLock.unlock();
     }
 
     @Override
@@ -101,113 +103,82 @@ public class TCPChannel implements IChannelListener
         //Log.d(TAG, this.getmChannelKey().toString() + " Received: flag: " + flags + " Seq " + this.getSEQ() + " ACK: " + this.getACK());
         if (payload == null) // Listeners in communicator can do NULL then nothing will be sent back
             return;
-        synchronized (this) //SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
-        {
-            TCPController.receive(payload, this, flags);
-            this.toSEQ += payload.length;
-            if (payload.length == 0 && (flags & TCPHeader.FIN) != 0)
-                this.toSEQ += 1;
-        }
+        seqLock.lock(); //SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
+        TCPController.receive(payload, this, flags);
+        this.toSEQ += payload.length;
+        if (payload.length == 0 && (flags & TCPHeader.FIN) != 0)
+            this.toSEQ += 1;
+        seqLock.unlock();
     }
 
     @Override
     public void close()
     {
-        //Log.d(TAG, "Closed: " + this.getmChannelKey().toString());
-        synchronized (this)
-        {
-            SocketPoller.getInstance().close(this.getmChannelKey());
-            TrustHub.getInstance().close(this.getmContext());
-            TCPController.remove(this.getmContext());
-        }
+        SocketPoller.getInstance().close(this.getmChannelKey());
+        TrustHub.getInstance().close(this.getmContext());
+        TCPController.remove(this.getmContext());
     }
 
     @Override
     public void readFinish()
     {
-        synchronized (this)//SEQ gets updated after the receive and since send is on different thread it could be used before we properly increment it
+        seqLock.lock();//SEQ gets updated after the receive and since send is on different thread it could be used before we properly increment it
+        TCPController.receive(new byte[0], this, TCPHeader.FIN);
+        this.toSEQ += 1;
+        if(this.mState != TCBState.FIN_WAIT1) // If we are in FIN_WAIT1 we should send one more ack back
         {
-            TCPController.receive(new byte[0], this, TCPHeader.FIN);
-            this.toSEQ += 1;
-            if(this.mState != TCBState.FIN_WAIT1) // If we are in FIN_WAIT1 we should send one more ack back
-            {
-                this.mState = TCBState.CLOSE_WAIT;
-            }
+            this.mState = TCBState.CLOSE_WAIT;
         }
+        seqLock.unlock();
     }
 
     @Override
     public void writeFinish()
     {
-        synchronized (this)
-        {
-            TCPController.receive(new byte[0], this, TCPHeader.RST);
-            this.close();
-        }
+        seqLock.lock();
+        TCPController.receive(new byte[0], this, TCPHeader.RST);
+        this.close();
+        seqLock.unlock();
     }
 
 
     public SelectionKey getmChannelKey()
     {
-        synchronized (this)
-        {
-            return mChannelKey;
-        }
+        return mChannelKey;
     }
 
     public long getSEQ()
     {
-        synchronized (this)
-        {
-            return toSEQ;
-        }
+        return toSEQ;
     }
 
     public void setSEQ(long toSEQ)
     {
-        synchronized (this)
-        {
             this.toSEQ = toSEQ;
-        }
     }
 
     public long getACK()
     {
-        synchronized (this)
-        {
             return toACK;
-        }
     }
 
     public void setACK(long toACK)
     {
-        synchronized (this)
-        {
-            this.toACK = toACK;
-        }
+        this.toACK = toACK;
     }
 
     public ITCBState getmState()
     {
-        synchronized (this)
-        {
             return mState;
-        }
     }
 
     public void setmState(ITCBState mState)
     {
-        synchronized (this)
-        {
             this.mState = mState;
-        }
     }
 
     public Connection getmContext()
     {
-        synchronized (this)
-        {
             return mContext;
-        }
     }
 }
