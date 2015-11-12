@@ -42,12 +42,10 @@ import edu.byu.tlsresearch.TrustHub.Utils.TrustEveryone;
 public class SSLProxy
 {
     private static String TAG = "SSLProxy";
-    private static SSLContext sslc = null;
+    private SSLContext sslc = null;
 
     private void setupContext(KeyStore spoofed, String passphrase) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException
     {
-        if (sslc == null)
-        {
             KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
             kmf.init(spoofed, passphrase.toCharArray());
 
@@ -57,7 +55,7 @@ public class SSLProxy
             sslc = SSLContext.getInstance("TLS");
             TrustManager[] managers = {new TrustEveryone()};
             sslc.init(kmf.getKeyManagers(), managers/*tmf.getTrustManagers()*/, null);
-        }
+
     }
 
     private SSLEngine clientSideEngine;

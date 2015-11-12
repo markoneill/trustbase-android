@@ -68,7 +68,6 @@ public class SocketPoller implements Runnable
     {
         if(toWrite != null) //TODO dont want to check if is valid
         {
-            //Log.d(TAG, "Send " + key.toString());
             //Log.d(TAG, "1 queue lock: " + mQueueLock.isHeldByCurrentThread());
             mQueueLock.lock();
             mEpoll.wakeup();
