@@ -37,7 +37,6 @@ public class SocketPoller implements Runnable
     private Map<SelectionKey, Queue<byte[]>> mWriteQueue;
     private Selector mEpoll;
     public static String TAG = "SocketPoller";
-    private ReentrantLock mQueueLock = new ReentrantLock();
     private ReentrantLock mEpollLock = new ReentrantLock();
 
     private static SocketPoller mInstance = null;
@@ -68,12 +67,13 @@ public class SocketPoller implements Runnable
     {
         if(toWrite != null) //TODO dont want to check if is valid
         {
+            //Log.d(TAG, "Send " + key.toString());
             //Log.d(TAG, "1 queue lock: " + mQueueLock.isHeldByCurrentThread());
-            mQueueLock.lock();
+            mEpollLock.lock();
             mEpoll.wakeup();
             mWriteQueue.get(key).add(toWrite);
             key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-            mQueueLock.unlock();
+            mEpollLock.unlock();
             //Log.d(TAG, "1 queue unlock");
             //Log.d(TAG, "Added to Queue");
         }
@@ -116,11 +116,7 @@ public class SocketPoller implements Runnable
             mEpoll.wakeup();
             toAdd = toRegister.register(mEpoll, 0);
             toAdd.attach(writeBack);
-            //Log.d(TAG, "3 queue lock: " + mQueueLock.isHeldByCurrentThread());
-            mQueueLock.lock();
             mWriteQueue.put(toAdd, new LinkedBlockingQueue<byte[]>());
-            mQueueLock.unlock();
-            //Log.d(TAG, "3 queue unlock");
             mEpollLock.unlock();
             //Log.d(TAG, "2 epoll unlock");
             return toAdd;
@@ -134,6 +130,7 @@ public class SocketPoller implements Runnable
 
     public boolean close(SelectionKey key)
     {
+
         //Log.d(TAG, "4 epoll lock: " + mEpollLock.isHeldByCurrentThread());
         mEpollLock.lock();
         mEpoll.wakeup();
@@ -141,6 +138,7 @@ public class SocketPoller implements Runnable
         {
             key.interestOps(0);
         }
+        //Log.d(TAG, "cancelAKJFPKADJPOSDJPG:LJSD:LGFJDS:LGJS:DLG " + key.toString());
         key.cancel();
         try
         {
@@ -156,11 +154,7 @@ public class SocketPoller implements Runnable
         {
             //Log.d(TAG, "4 epoll unlock");
             mEpollLock.unlock();
-            //Log.d(TAG, "5 queue lock: " + mQueueLock.isHeldByCurrentThread());
-            mQueueLock.lock();
             mWriteQueue.remove(key);
-            //Log.d(TAG, "5 queue unlock");
-            mQueueLock.unlock();
             return true;
         }
     }
@@ -175,23 +169,22 @@ public class SocketPoller implements Runnable
         {
             try
             {
-
-                //Log.d(TAG, "Start Polling");
                 if (mEpoll.select() > 0)
                 {
-
                    // Log.d(TAG, "End Polling");
                     //Log.d(TAG, "" + mWriteQueue.size());
                     mEpollLock.lock();
+                    mEpollLock.unlock();
                     Set<SelectionKey> selectedKeys = mEpoll.selectedKeys();
                     Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
                     while (keyIterator.hasNext())
                     {
                         SelectionKey key = keyIterator.next();
+                        //Log.d(TAG, "poll " + key.toString());
                         // READ FROM SOCKET
                        // Log.d(TAG, "Poller: " + key.toString());
-//                        if(!key.isValid())
-//                            continue;
+                        if(!key.isValid())
+                            continue;
                         if(key.isConnectable())
                         {
                             try
@@ -216,19 +209,21 @@ public class SocketPoller implements Runnable
                         }
                         keyIterator.remove();
                     }
-                    mEpollLock.unlock();
                 }
                 else
                 {
-                    mEpollLock.lock();
-                    mEpollLock.unlock(); // used to stop this from blocking immediately when wakeup from register is called
+                    mEpollLock.lock(); // used to stop this from blocking immediately when wakeup from register is called
+                    mEpollLock.unlock();
                 }
             }
             catch (IOException e)
             {
                 e.printStackTrace();
             }
-            UDPController.markAndSweep();
+            finally
+            {
+                UDPController.markAndSweep();
+            }
         }
     }
 
@@ -257,6 +252,7 @@ public class SocketPoller implements Runnable
             }
             if (length == -1)
             {
+                //Log.d(TAG, "canceld? " + key.toString());
                 key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
                 ((IChannelListener) key.attachment()).readFinish();
             }
@@ -276,11 +272,8 @@ public class SocketPoller implements Runnable
     {
         //Log.d(TAG, key.toString() + " Writing");
 
-        //Log.d(TAG, "6 queue lock: " + mQueueLock.isHeldByCurrentThread());
-        mQueueLock.lock();
-        //TODO This errors sometimes with null object reference
         // I think it is perhaps running out of memory and I can't make a new one
-        if (!mWriteQueue.get(key).isEmpty()) //TODO: switch this back to while?
+        if (!mWriteQueue.get(key).isEmpty())
         {
             byte[] toWrite = mWriteQueue.get(key).remove();
             ByteBuffer writer = ByteBuffer.wrap(new byte[toWrite.length]);
@@ -306,13 +299,8 @@ public class SocketPoller implements Runnable
             key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
             if(key.channel() instanceof SocketChannel && key.interestOps() == 0)
             {
-                //Log.d(TAG, "CLOSING");
                 ((TCPChannel) key.attachment()).close();
-                //Log.d(TAG, "CLOSED");
             }
         }
-        //Log.d(TAG, "soon unlock");
-        mQueueLock.unlock();
-        //Log.d(TAG, "6 queue unlock");
     }
 }

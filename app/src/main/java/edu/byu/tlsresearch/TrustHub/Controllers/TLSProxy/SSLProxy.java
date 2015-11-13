@@ -49,9 +49,6 @@ public class SSLProxy
             KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
             kmf.init(spoofed, passphrase.toCharArray());
 
-//            TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
-//            tmf.init(spoofed);
-
             sslc = SSLContext.getInstance("TLS");
             TrustManager[] managers = {new TrustEveryone()};
             sslc.init(kmf.getKeyManagers(), managers/*tmf.getTrustManagers()*/, null);

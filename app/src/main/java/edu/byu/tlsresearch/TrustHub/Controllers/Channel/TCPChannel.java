@@ -106,9 +106,9 @@ public class TCPChannel implements IChannelListener
         seqLock.lock(); //SEQ gets updated after the receive and since send is on different thread it could be used before we properly incrememnt it
         TCPController.receive(payload, this, flags);
         this.toSEQ += payload.length;
+        seqLock.unlock();
         if (payload.length == 0 && (flags & TCPHeader.FIN) != 0)
             this.toSEQ += 1;
-        seqLock.unlock();
     }
 
     @Override

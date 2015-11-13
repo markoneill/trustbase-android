@@ -138,7 +138,7 @@ public class PolicyEngine extends Service
             //Log.d(TAG, "Returning INVALID");
             toReturn = PluginInterface.POLICY_RESPONSE.INVALID;
         }
-        return PluginInterface.POLICY_RESPONSE.VALID_PROXY;//toReturn;
+        return PluginInterface.POLICY_RESPONSE.VALID;//toReturn;
     }
 
     /*

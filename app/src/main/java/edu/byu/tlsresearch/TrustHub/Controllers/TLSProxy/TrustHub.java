@@ -143,6 +143,7 @@ public class TrustHub
                                 conState.myProxy.send(proxySend);
                             } catch (SSLException e)
                             {
+                                ((TCPChannel) key.attachment()).close();
                                 Log.e(TAG, "Proxy Send failed: " + e);
                                 e.printStackTrace();
                             }
@@ -250,13 +251,16 @@ public class TrustHub
                                     conState.myProxy.receive(new byte[0]); //Kickstart the proxy
                                 } catch (SSLException e)
                                 {
+                                    ((TCPChannel) key.attachment()).close();
                                     Log.e(TAG, "Send clientHello failed: " + e.getMessage());
                                     e.printStackTrace();
                                 } catch (IOException e)
                                 {
+                                    ((TCPChannel) key.attachment()).close();
                                     Log.e(TAG, "Unable to open new socket: " + e.getMessage());
                                 } catch (Exception e)
                                 {
+                                    ((TCPChannel) key.attachment()).close();
                                     Log.e(TAG, "Proxy failed: " + e.getMessage());
                                     e.printStackTrace();
                                 }
@@ -270,6 +274,7 @@ public class TrustHub
                                     conState.myProxy.receive(proxyReceive);
                                 } catch (SSLException e)
                                 {
+                                    ((TCPChannel) key.attachment()).close();
                                     Log.e(TAG, "Proxy Receive failed: " + e.getMessage());
                                     e.printStackTrace();
                                 }

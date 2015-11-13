@@ -77,13 +77,7 @@ public enum TCBState implements ITCBState
                             context.setACK(context.getACK()+1);
                             context.receive(new byte[0], TCPHeader.ACK);
                         }
-                        try
-                        {
-                            context.getmChannelKey().channel().close();
-                        } catch (IOException e)
-                        {
-                            e.printStackTrace();
-                        }
+                        //TODO tell the socket that we are done?
                         context.setmState(TCBState.FIN_WAIT1);
                     }
                 }
