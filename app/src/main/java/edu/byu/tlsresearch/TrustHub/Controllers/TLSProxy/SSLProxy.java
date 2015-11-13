@@ -11,6 +11,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -67,6 +69,8 @@ public class SSLProxy
     private ByteBuffer toNetwork;
     private ByteBuffer fromNetwork;
 
+    private Lock wrapLock = new ReentrantLock();
+
     private SelectionKey mKey;
 
     public SSLProxy(SelectionKey key, KeyStore spoofed, String passphrase) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException
@@ -76,7 +80,6 @@ public class SSLProxy
 
         clientSideEngine = sslc.createSSLEngine();
         clientSideEngine.setUseClientMode(false);
-        clientSideEngine.setNeedClientAuth(false);
         //SSLSession clientSession = clientSideEngine.getSession();
         cTos = ByteBuffer.allocate(65535);//clientSession.getApplicationBufferSize());
         toApp = ByteBuffer.allocate(65535);//clientSession.getPacketBufferSize() + 50);
@@ -92,20 +95,39 @@ public class SSLProxy
         serverSideEngine.beginHandshake(); //Force the getHandshakeStatus to be correct
     }
 
+    public void close()
+    {
+        try
+        {
+            clientSideEngine.closeInbound();
+            serverSideEngine.closeInbound();
+        }
+        catch (Exception e)
+        {
+            Log.d(TAG, "Engine close fail: " + e.getMessage());
+        }
+        clientSideEngine.closeOutbound();
+        serverSideEngine.closeOutbound();
+    }
+
     public void send(byte[] toSend) throws javax.net.ssl.SSLException
     {
         //Log.d(TAG, "proxy from app: " + TrustHub.bytesToHex(toSend));
+        wrapLock.lock();
         handle(toSend, toApp, fromApp, clientSideEngine, clientResult,
                 cTos, sToc, toNetwork, serverSideEngine, serverResult);
         writeout();
+        wrapLock.unlock();
     }
 
     public void receive(byte[] toSend) throws javax.net.ssl.SSLException
     {
+        wrapLock.lock();
         //Log.d(TAG, "proxy from internet: " + TrustHub.bytesToHex(toSend));
         handle(toSend, toNetwork, fromNetwork, serverSideEngine, serverResult,
                 sToc, cTos, toApp, clientSideEngine, clientResult);
         writeout();
+        wrapLock.unlock();
     }
 
     public void writeout()

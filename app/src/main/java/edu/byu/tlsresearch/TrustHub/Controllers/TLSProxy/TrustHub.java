@@ -102,6 +102,11 @@ public class TrustHub
         stateLock.lock();
         if(mStates.containsKey(context))
         {
+            connection_state state = mStates.get(context);
+            if(state.myProxy != null)
+            {
+                state.myProxy.close();
+            }
             mStates.remove(context);
         }
         stateLock.unlock();
