@@ -67,13 +67,23 @@ public class SocketPoller implements Runnable
     {
         if(toWrite != null) //TODO dont want to check if is valid
         {
-            //Log.d(TAG, "Send " + key.toString());
-            //Log.d(TAG, "1 queue lock: " + mQueueLock.isHeldByCurrentThread());
-            mEpollLock.lock();
-            mEpoll.wakeup();
-            mWriteQueue.get(key).add(toWrite);
-            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-            mEpollLock.unlock();
+            try
+            {
+                //Log.d(TAG, "Send " + key.toString());
+                //Log.d(TAG, "1 queue lock: " + mQueueLock.isHeldByCurrentThread());
+                mEpollLock.lock();
+                mEpoll.wakeup();
+                mWriteQueue.get(key).add(toWrite);
+                key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+            }
+            catch(NullPointerException e)
+            {
+                e.printStackTrace(); //TODO remove this
+            }
+            finally
+            {
+                mEpollLock.unlock();
+            }
             //Log.d(TAG, "1 queue unlock");
             //Log.d(TAG, "Added to Queue");
         }
