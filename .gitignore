@@ -30,3 +30,15 @@ proguard/
 
 # Android Studio captures folder
 captures//build
+
+.idea/
+.gradle
+/*/local.properties
+/*/out
+/*/*/build
+/*/*/production
+*.iml
+*.iws
+*.ipr
+*~
+*.swp
